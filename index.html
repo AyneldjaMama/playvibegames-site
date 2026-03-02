@@ -1,787 +1,955 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vibe Games – Pure reflex. No filler.</title>
-  <meta name="description" content="Vibe Games makes minimal, reflex-driven mobile arcade games. Try DODGE.IO and SPLIT on Android.">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --bg: #030507;
-      --surface: #080d12;
-      --accent: #00f5ff;
-      --red: #ff2d55;
-      --yellow: #ffd60a;
-      --purple: #7b2fff;
-      --text: #e8edf2;
-      --muted: #3d4f61;
-      --muted2: #6b7f92;
-    }
-
-    html { scroll-behavior: smooth; }
-
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Space Mono', monospace;
-      overflow-x: hidden;
-      cursor: crosshair;
-    }
-
-    #bg-canvas {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      z-index: 0;
-      pointer-events: none;
-    }
-
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
-      pointer-events: none;
-      z-index: 1;
-      opacity: 0.35;
-    }
-
-    .z { position: relative; z-index: 2; }
-
-    .container {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 0 2rem;
-    }
-
-    /* ── NAV ── */
-    nav {
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      z-index: 100;
-      padding: 1.25rem 2rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 1px solid rgba(0,245,255,0.07);
-      background: rgba(3,5,7,0.8);
-      backdrop-filter: blur(16px);
-    }
-
-    .nav-brand {
-      display: flex;
-      flex-direction: column;
-      gap: 0;
-    }
-
-    .nav-logo {
-      font-family: 'Black Ops One', sans-serif;
-      font-size: 1.1rem;
-      color: var(--accent);
-      letter-spacing: 0.12em;
-      text-shadow: 0 0 20px rgba(0,245,255,0.4);
-      line-height: 1;
-    }
-
-    .nav-sub {
-      font-size: 0.55rem;
-      letter-spacing: 0.25em;
-      text-transform: uppercase;
-      color: var(--muted2);
-      margin-top: 2px;
-    }
-
-    .nav-links {
-      display: flex;
-      gap: 2rem;
-      align-items: center;
-    }
-
-    .nav-link {
-      font-size: 0.65rem;
-      color: var(--muted2);
-      text-decoration: none;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      transition: color 0.2s;
-    }
-    .nav-link:hover { color: var(--accent); }
-
-    /* ── HERO ── */
-    .hero {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      padding: 8rem 0 6rem;
-    }
-
-    .hero-inner {
-      text-align: center;
-      max-width: 700px;
-      margin: 0 auto;
-    }
-
-    .hero-eyebrow {
-      font-size: 0.65rem;
-      letter-spacing: 0.4em;
-      text-transform: uppercase;
-      color: var(--accent);
-      margin-bottom: 2rem;
-      opacity: 0;
-      animation: fadeUp 0.6s 0.1s ease forwards;
-    }
-
-    .hero-title {
-      font-family: 'Black Ops One', sans-serif;
-      font-size: clamp(3rem, 9vw, 7rem);
-      line-height: 0.88;
-      color: #fff;
-      margin-bottom: 2rem;
-      opacity: 0;
-      animation: fadeUp 0.6s 0.2s ease forwards;
-    }
-
-    .hero-title .accent { color: var(--accent); text-shadow: 0 0 40px rgba(0,245,255,0.4); }
-
-    .hero-desc {
-      font-size: 0.85rem;
-      line-height: 1.9;
-      color: var(--muted2);
-      max-width: 42ch;
-      margin: 0 auto 3rem;
-      opacity: 0;
-      animation: fadeUp 0.6s 0.35s ease forwards;
-    }
-
-    .hero-scroll {
-      font-size: 0.6rem;
-      letter-spacing: 0.3em;
-      text-transform: uppercase;
-      color: var(--muted);
-      opacity: 0;
-      animation: fadeUp 0.6s 0.5s ease forwards;
-    }
-
-    .hero-scroll span {
-      display: block;
-      width: 1px;
-      height: 40px;
-      background: linear-gradient(to bottom, var(--muted), transparent);
-      margin: 0.75rem auto 0;
-    }
-
-    /* ── SECTION LABEL ── */
-    .section-label {
-      font-size: 0.6rem;
-      letter-spacing: 0.4em;
-      text-transform: uppercase;
-      color: var(--accent);
-      margin-bottom: 4rem;
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-    }
-    .section-label::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: linear-gradient(to right, rgba(0,245,255,0.25), transparent);
-    }
-
-    /* ── GAMES SECTION ── */
-    .games {
-      padding: 6rem 0;
-    }
-
-    .games-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 2px;
-    }
-
-    /* ── GAME CARD ── */
-    .game-card {
-      padding: 3rem 2.5rem;
-      background: rgba(8,13,18,0.9);
-      border: 1px solid rgba(0,245,255,0.07);
-      position: relative;
-      overflow: hidden;
-      transition: border-color 0.4s;
-    }
-
-    .game-card:hover {
-      border-color: rgba(0,245,255,0.18);
-    }
-
-    .game-card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 2px;
-      transition: opacity 0.4s;
-      opacity: 0;
-    }
-
-    .game-card.dodge::before { background: var(--accent); }
-    .game-card.split::before { background: linear-gradient(to right, var(--red), var(--yellow)); }
-    .game-card:hover::before { opacity: 1; }
-
-    .game-tag {
-      font-size: 0.55rem;
-      letter-spacing: 0.3em;
-      text-transform: uppercase;
-      padding: 0.3rem 0.7rem;
-      border: 1px solid;
-      display: inline-block;
-      margin-bottom: 1.5rem;
-    }
-
-    .game-card.dodge .game-tag { color: var(--accent); border-color: rgba(0,245,255,0.3); }
-    .game-card.split .game-tag { color: var(--yellow); border-color: rgba(255,214,10,0.3); }
-
-    .game-title {
-      font-family: 'Black Ops One', sans-serif;
-      font-size: 2.8rem;
-      line-height: 0.9;
-      margin-bottom: 1rem;
-      letter-spacing: 0.02em;
-    }
-
-    .game-card.dodge .game-title { color: var(--accent); text-shadow: 0 0 30px rgba(0,245,255,0.3); }
-    .game-card.split .game-title { color: #fff; }
-
-    .game-tagline {
-      font-size: 0.7rem;
-      letter-spacing: 0.1em;
-      color: var(--muted2);
-      margin-bottom: 2rem;
-      text-transform: uppercase;
-    }
-
-    /* ── MINI GAME SCREENS ── */
-    .mini-screen {
-      width: 120px;
-      aspect-ratio: 9/16;
-      border-radius: 1rem;
-      border: 1px solid rgba(0,245,255,0.15);
-      background: #050a0f;
-      position: relative;
-      overflow: hidden;
-      float: right;
-      margin: 0 0 1.5rem 1.5rem;
-      box-shadow: 0 0 30px rgba(0,245,255,0.06);
-    }
-
-    .mini-screen canvas {
-      width: 100%;
-      height: 100%;
-      border-radius: 1rem;
-    }
-
-    .scanlines-mini {
-      position: absolute;
-      inset: 0;
-      background: repeating-linear-gradient(
-        0deg, transparent, transparent 2px,
-        rgba(0,0,0,0.12) 2px, rgba(0,0,0,0.12) 4px
-      );
-      pointer-events: none;
-      border-radius: 1rem;
-      z-index: 5;
-    }
-
-    .game-desc {
-      font-size: 0.75rem;
-      line-height: 1.85;
-      color: var(--muted2);
-      margin-bottom: 2rem;
-      clear: both;
-    }
-
-    .game-mechanic {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      margin-bottom: 2rem;
-      padding: 1rem 1.25rem;
-      background: rgba(0,245,255,0.03);
-      border-left: 2px solid;
-    }
-
-    .game-card.dodge .game-mechanic { border-color: var(--accent); }
-    .game-card.split .game-mechanic { border-color: var(--yellow); }
-
-    .mechanic-icon {
-      font-size: 1.2rem;
-      flex-shrink: 0;
-    }
-
-    .mechanic-text {
-      font-size: 0.65rem;
-      line-height: 1.6;
-      color: var(--muted2);
-    }
-
-    .mechanic-text strong {
-      display: block;
-      color: #fff;
-      margin-bottom: 0.15rem;
-      font-size: 0.7rem;
-    }
-
-    .game-cta {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.6rem;
-      font-family: 'Black Ops One', sans-serif;
-      font-size: 0.8rem;
-      letter-spacing: 0.1em;
-      padding: 0.8rem 1.6rem;
-      text-decoration: none;
-      clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
-      transition: all 0.2s;
-    }
-
-    .game-card.dodge .game-cta {
-      background: var(--accent);
-      color: #000;
-    }
-    .game-card.dodge .game-cta:hover {
-      background: #fff;
-      box-shadow: 3px 3px 0 var(--red);
-      transform: translate(-2px, -2px);
-    }
-
-    .game-card.split .game-cta {
-      background: transparent;
-      color: var(--yellow);
-      border: 1px solid rgba(255,214,10,0.4);
-      clip-path: none;
-    }
-    .game-card.split .game-cta:hover {
-      background: rgba(255,214,10,0.08);
-      border-color: var(--yellow);
-    }
-
-    .coming-soon {
-      font-size: 0.55rem;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-top: 0.75rem;
-      display: block;
-    }
-
-    /* ── THREAT STRIP ── */
-    .threat-strip {
-      padding: 5rem 0;
-      border-top: 1px solid rgba(0,245,255,0.06);
-      border-bottom: 1px solid rgba(0,245,255,0.06);
-    }
-
-    .threat-strip-inner {
-      display: flex;
-      gap: 0;
-      overflow-x: auto;
-      scrollbar-width: none;
-    }
-    .threat-strip-inner::-webkit-scrollbar { display: none; }
-
-    .threat-chip {
-      flex-shrink: 0;
-      padding: 1.5rem 2rem;
-      border-right: 1px solid rgba(0,245,255,0.06);
-      text-align: center;
-      min-width: 120px;
-    }
-
-    .threat-chip-icon { font-size: 1.2rem; display: block; margin-bottom: 0.5rem; }
-    .threat-chip-name { font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted2); }
-    .threat-chip-game { font-size: 0.5rem; letter-spacing: 0.1em; color: var(--muted); margin-top: 0.25rem; }
-
-    /* ── STUDIO SECTION ── */
-    .studio {
-      padding: 7rem 0;
-    }
-
-    .studio-inner {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 6rem;
-      align-items: center;
-    }
-
-    .studio-title {
-      font-family: 'Black Ops One', sans-serif;
-      font-size: 2.5rem;
-      line-height: 1;
-      color: #fff;
-      margin-bottom: 1.5rem;
-    }
-
-    .studio-title .accent { color: var(--accent); }
-
-    .studio-desc {
-      font-size: 0.78rem;
-      line-height: 1.9;
-      color: var(--muted2);
-      margin-bottom: 2rem;
-    }
-
-    .studio-pillars {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-
-    .pillar {
-      display: flex;
-      gap: 1rem;
-      align-items: flex-start;
-    }
-
-    .pillar-num {
-      font-family: 'Black Ops One', sans-serif;
-      font-size: 1.2rem;
-      color: rgba(0,245,255,0.2);
-      flex-shrink: 0;
-      line-height: 1;
-      margin-top: 0.1rem;
-    }
-
-    .pillar-text {
-      font-size: 0.72rem;
-      line-height: 1.7;
-      color: var(--muted2);
-    }
-
-    .pillar-text strong { color: #fff; display: block; margin-bottom: 0.1rem; }
-
-    .stat-grid-studio {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 2px;
-    }
-
-    .studio-stat {
-      padding: 2rem 1.5rem;
-      background: rgba(0,245,255,0.02);
-      border: 1px solid rgba(0,245,255,0.07);
-      text-align: center;
-    }
-
-    .studio-stat-num {
-      font-family: 'Black Ops One', sans-serif;
-      font-size: 2.5rem;
-      color: var(--accent);
-      text-shadow: 0 0 20px rgba(0,245,255,0.3);
-      display: block;
-      line-height: 1;
-      margin-bottom: 0.5rem;
-    }
-
-    .studio-stat-label {
-      font-size: 0.58rem;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
-
-    /* ── FOOTER ── */
-    footer {
-      position: relative;
-      z-index: 2;
-      padding: 2rem;
-      border-top: 1px solid rgba(0,245,255,0.07);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .footer-copy { font-size: 0.6rem; color: var(--muted); letter-spacing: 0.1em; }
-
-    .footer-links { display: flex; gap: 2rem; }
-    .footer-links a {
-      font-size: 0.6rem;
-      color: var(--muted);
-      text-decoration: none;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      transition: color 0.2s;
-    }
-    .footer-links a:hover { color: var(--accent); }
-
-    .divider {
-      height: 1px;
-      background: linear-gradient(to right, transparent, rgba(0,245,255,0.15), transparent);
-      position: relative;
-      z-index: 2;
-    }
-
-    /* ── ANIMATIONS ── */
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(24px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
-    .blink { animation: blink 1.2s step-end infinite; }
-
-    /* ── RESPONSIVE ── */
-    @media (max-width: 768px) {
-      .games-grid { grid-template-columns: 1fr; }
-      .studio-inner { grid-template-columns: 1fr; gap: 3rem; }
-      .mini-screen { width: 90px; }
-      .game-title { font-size: 2rem; }
-      footer { flex-direction: column; gap: 1rem; text-align: center; }
-      .hero-title { font-size: clamp(2.5rem, 12vw, 5rem); }
-      nav { padding: 1rem; }
-      .nav-links { gap: 1rem; }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vibe Games — Pure reflex. No filler.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Barlow+Condensed:wght@300;400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080808;
+    --surface: #0f0f0f;
+    --border: #1e1e1e;
+    --border-active: #333;
+    --text: #e8e8e8;
+    --muted: #555;
+    --dim: #333;
+    --accent: #e8ff47;
+    --accent2: #ff4747;
+    --mono: 'Space Mono', monospace;
+    --display: 'Barlow Condensed', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { font-size: 16px; scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    line-height: 1.6;
+    overflow-x: hidden;
+    cursor: crosshair;
+  }
+
+  ::selection { background: var(--accent); color: #000; }
+
+  /* SCANLINE OVERLAY */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.04) 2px,
+      rgba(0,0,0,0.04) 4px
+    );
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2rem;
+    height: 52px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(8,8,8,0.92);
+    backdrop-filter: blur(12px);
+  }
+
+  .nav-logo {
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: 1.1rem;
+    letter-spacing: 0.18em;
+    color: var(--text);
+    text-decoration: none;
+    text-transform: uppercase;
+  }
+
+  .nav-logo span { color: var(--accent); }
+
+  .nav-links {
+    display: flex;
+    gap: 2rem;
+    list-style: none;
+  }
+
+  .nav-links a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    transition: color 0.15s;
+  }
+
+  .nav-links a:hover { color: var(--text); }
+
+  .nav-url {
+    font-size: 0.6rem;
+    color: var(--dim);
+    letter-spacing: 0.05em;
+  }
+
+  /* HERO */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 52px 2rem 3rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+  }
+
+  /* Grid lines */
+  .hero-bg::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(232,255,71,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(232,255,71,0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+    animation: gridDrift 20s linear infinite;
+  }
+
+  @keyframes gridDrift {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(60px); }
+  }
+
+  /* Floating threat symbols */
+  .threats-bg {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .threat-float {
+    position: absolute;
+    color: rgba(232,255,71,0.06);
+    font-size: 1.2rem;
+    animation: floatUp linear infinite;
+    font-family: var(--mono);
+  }
+
+  @keyframes floatUp {
+    0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; }
+  }
+
+  .hero-eyebrow {
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 1.5rem;
+    position: relative;
+  }
+
+  .hero-eyebrow::before {
+    content: '//';
+    margin-right: 0.5rem;
+    opacity: 0.5;
+  }
+
+  .hero-headline {
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: clamp(3.5rem, 10vw, 9rem);
+    line-height: 0.9;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+    position: relative;
+  }
+
+  .hero-headline .line2 {
+    color: transparent;
+    -webkit-text-stroke: 1px rgba(232,255,71,0.4);
+  }
+
+  .hero-sub {
+    font-family: var(--display);
+    font-weight: 300;
+    font-size: clamp(1.2rem, 3vw, 2rem);
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 3rem;
+    position: relative;
+  }
+
+  .hero-bottom {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 2rem;
+    position: relative;
+  }
+
+  .hero-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 1rem;
+    background: var(--accent);
+    color: #000;
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    text-decoration: none;
+    padding: 0.9rem 1.8rem;
+    transition: all 0.1s;
+    position: relative;
+  }
+
+  .hero-cta::after {
+    content: '';
+    position: absolute;
+    inset: 3px -3px -3px 3px;
+    background: rgba(232,255,71,0.2);
+    z-index: -1;
+    transition: all 0.1s;
+  }
+
+  .hero-cta:hover {
+    background: #fff;
+  }
+
+  .hero-stats {
+    display: flex;
+    gap: 3rem;
+  }
+
+  .stat {
+    text-align: right;
+  }
+
+  .stat-num {
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: 2rem;
+    line-height: 1;
+    color: var(--text);
+  }
+
+  .stat-label {
+    font-size: 0.55rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 0.2rem;
+  }
+
+  /* SECTION LAYOUT */
+  section {
+    border-top: 1px solid var(--border);
+  }
+
+  .section-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 5rem 2rem;
+  }
+
+  .section-label {
+    font-size: 0.55rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 3rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* GAMES GRID */
+  .games-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+  }
+
+  .game-card {
+    background: var(--bg);
+    padding: 3rem;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.2s;
+  }
+
+  .game-card:hover {
+    background: var(--surface);
+  }
+
+  .game-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px;
+    height: 0;
+    background: var(--accent);
+    transition: height 0.3s ease;
+  }
+
+  .game-card:hover::before { height: 100%; }
+
+  .game-status {
+    display: inline-block;
+    font-size: 0.55rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #000;
+    background: var(--accent);
+    padding: 0.25rem 0.6rem;
+    margin-bottom: 2rem;
+  }
+
+  .game-status.dev {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border-active);
+  }
+
+  .game-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    display: block;
+    line-height: 1;
+  }
+
+  .game-title {
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: 3.5rem;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    color: var(--text);
+    margin-bottom: 0.3rem;
+  }
+
+  .game-tagline {
+    font-family: var(--display);
+    font-weight: 300;
+    font-size: 1.1rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 2rem;
+  }
+
+  .game-desc {
+    font-size: 0.72rem;
+    color: #888;
+    line-height: 1.8;
+    margin-bottom: 2.5rem;
+    max-width: 38ch;
+  }
+
+  .game-mechanic {
+    border-top: 1px solid var(--border);
+    padding-top: 1.5rem;
+    margin-top: auto;
+  }
+
+  .mechanic-input {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 1.3rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text);
+    margin-bottom: 0.25rem;
+  }
+
+  .mechanic-desc {
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+
+  .game-footer {
+    margin-top: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .game-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(232,255,71,0.3);
+    padding-bottom: 2px;
+    transition: border-color 0.15s;
+  }
+
+  .game-link:hover { border-color: var(--accent); }
+
+  .game-badge {
+    font-size: 0.55rem;
+    color: var(--dim);
+    letter-spacing: 0.08em;
+  }
+
+  /* THREATS CATALOG */
+  .threats-section { background: var(--bg); }
+
+  .threats-header {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    margin-bottom: 4rem;
+    align-items: end;
+  }
+
+  .threats-headline {
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: clamp(2.5rem, 5vw, 5rem);
+    line-height: 0.9;
+    text-transform: uppercase;
+    color: var(--text);
+  }
+
+  .threats-desc {
+    font-size: 0.72rem;
+    color: #666;
+    line-height: 1.9;
+    align-self: end;
+  }
+
+  .threats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+  }
+
+  .threat-cell {
+    background: var(--bg);
+    padding: 1.8rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.15s;
+    cursor: default;
+  }
+
+  .threat-cell:hover { background: #0d0d0d; }
+
+  .threat-cell:hover .threat-symbol {
+    transform: scale(1.3);
+    color: var(--accent);
+  }
+
+  .threat-symbol {
+    font-size: 1.4rem;
+    line-height: 1;
+    color: var(--text);
+    transition: all 0.2s;
+    display: block;
+    font-family: var(--mono);
+  }
+
+  .threat-name {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 1rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text);
+  }
+
+  .threat-game {
+    font-size: 0.55rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-family: var(--mono);
+  }
+
+  .threat-game.dodge { color: rgba(232,255,71,0.6); }
+  .threat-game.split { color: rgba(255,71,71,0.6); }
+
+  /* STUDIO */
+  .studio-section { background: var(--surface); }
+
+  .studio-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6rem;
+    align-items: start;
+  }
+
+  .studio-headline {
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: clamp(2.5rem, 5vw, 5rem);
+    line-height: 0.9;
+    text-transform: uppercase;
+    color: var(--text);
+    margin-bottom: 1.5rem;
+  }
+
+  .studio-body {
+    font-size: 0.72rem;
+    color: #666;
+    line-height: 1.9;
+    margin-bottom: 3rem;
+  }
+
+  .principles {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .principle {
+    padding: 1.5rem 0;
+    border-bottom: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: 2rem 1fr;
+    gap: 1.5rem;
+    align-items: baseline;
+  }
+
+  .principle:first-child { border-top: 1px solid var(--border); }
+
+  .principle-num {
+    font-size: 0.6rem;
+    color: var(--accent);
+    font-weight: 700;
+    letter-spacing: 0.1em;
+  }
+
+  .principle-title {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 1rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text);
+    margin-bottom: 0.4rem;
+  }
+
+  .principle-body {
+    font-size: 0.65rem;
+    color: #666;
+    line-height: 1.7;
+  }
+
+  .studio-metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+  }
+
+  .metric {
+    background: var(--bg);
+    padding: 2rem;
+  }
+
+  .metric-val {
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: 3.5rem;
+    line-height: 1;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+  }
+
+  .metric-val.accent { color: var(--accent); }
+  .metric-val.red { color: var(--accent2); }
+
+  .metric-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .footer-copy {
+    font-size: 0.6rem;
+    color: var(--dim);
+    letter-spacing: 0.08em;
+  }
+
+  .footer-links {
+    display: flex;
+    gap: 2rem;
+    list-style: none;
+  }
+
+  .footer-links a {
+    font-size: 0.6rem;
+    color: var(--muted);
+    text-decoration: none;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    transition: color 0.15s;
+  }
+
+  .footer-links a:hover { color: var(--text); }
+
+  /* GLITCH EFFECT */
+  @keyframes glitch {
+    0%, 90%, 100% { clip-path: none; transform: none; }
+    91% { clip-path: rect(20px, 9999px, 40px, 0); transform: translateX(-4px); }
+    93% { clip-path: rect(60px, 9999px, 80px, 0); transform: translateX(4px); }
+    95% { clip-path: rect(10px, 9999px, 30px, 0); transform: translateX(-2px); }
+  }
+
+  .hero-headline { position: relative; }
+  .hero-headline::after {
+    content: attr(data-text);
+    position: absolute;
+    left: 0; top: 0;
+    color: var(--accent);
+    animation: glitch 8s ease-in-out infinite;
+    opacity: 0.6;
+    pointer-events: none;
+  }
+
+  /* ENTRANCE ANIMATIONS */
+  .fade-up {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeUp 0.6s ease forwards;
+  }
+
+  @keyframes fadeUp {
+    to { opacity: 1; transform: none; }
+  }
+
+  .fade-up:nth-child(1) { animation-delay: 0.1s; }
+  .fade-up:nth-child(2) { animation-delay: 0.2s; }
+  .fade-up:nth-child(3) { animation-delay: 0.3s; }
+  .fade-up:nth-child(4) { animation-delay: 0.4s; }
+
+  /* TICKER */
+  .ticker {
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    overflow: hidden;
+    height: 36px;
+    display: flex;
+    align-items: center;
+  }
+
+  .ticker-inner {
+    display: flex;
+    gap: 0;
+    animation: tickerScroll 25s linear infinite;
+    white-space: nowrap;
+  }
+
+  @keyframes tickerScroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  .ticker-item {
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 0 3rem;
+    flex-shrink: 0;
+  }
+
+  .ticker-item span {
+    color: var(--accent);
+    margin-right: 0.5rem;
+  }
+
+  /* RESPONSIVE */
+  @media (max-width: 768px) {
+    nav { padding: 0 1rem; }
+    .nav-url { display: none; }
+    .hero { padding: 72px 1rem 2rem; }
+    .hero-stats { gap: 1.5rem; }
+    .stat-num { font-size: 1.5rem; }
+    .section-inner { padding: 3rem 1rem; }
+    .games-grid { grid-template-columns: 1fr; }
+    .threats-header { grid-template-columns: 1fr; gap: 1.5rem; }
+    .threats-grid { grid-template-columns: repeat(2, 1fr); }
+    .studio-grid { grid-template-columns: 1fr; gap: 3rem; }
+    footer { flex-direction: column; gap: 1.5rem; text-align: center; }
+  }
+</style>
 </head>
 <body>
 
-<canvas id="bg-canvas"></canvas>
-
 <!-- NAV -->
 <nav>
-  <div class="nav-brand">
-    <div class="nav-logo">VIBE GAMES</div>
-    <div class="nav-sub">playvibegames.app</div>
-  </div>
-  <div class="nav-links">
-    <a href="#games" class="nav-link">Games</a>
-    <a href="#studio" class="nav-link">Studio</a>
-    <a href="privacy.html" class="nav-link">Privacy</a>
-    <a href="mailto:contact@playvibegames.app" class="nav-link">Contact</a>
-  </div>
+  <a href="#" class="nav-logo">Vibe <span>Games</span></a>
+  <ul class="nav-links">
+    <li><a href="#games">Games</a></li>
+    <li><a href="#studio">Studio</a></li>
+    <li><a href="mailto:contact@playvibegames.app">Contact</a></li>
+  </ul>
+  <span class="nav-url">playvibegames.app</span>
 </nav>
 
 <!-- HERO -->
-<section class="hero z">
-  <div class="container">
-    <div class="hero-inner">
-      <p class="hero-eyebrow">Pure reflex. No filler.</p>
-      <h1 class="hero-title">
-        PLAY<br><span class="accent">WITHOUT</span><br>NOISE
-      </h1>
-      <p class="hero-desc">
-        Vibe Games makes tight, minimal arcade games built for mobile.
-        One mechanic. One rule. Survive as long as you can.
-      </p>
-      <p class="hero-scroll">
-        Our games<span></span>
-      </p>
+<section class="hero" id="top">
+  <div class="hero-bg">
+    <div class="threats-bg" id="threatsFloat"></div>
+  </div>
+
+  <div class="hero-eyebrow fade-up">Indie arcade studio — Mobile · Android</div>
+  <h1 class="hero-headline fade-up" data-text="PLAY WITHOUT NOISE">
+    PLAY WITHOUT<br>
+    <span class="line2">NOISE</span>
+  </h1>
+  <p class="hero-sub fade-up">Pure reflex. No filler.</p>
+
+  <div class="hero-bottom fade-up">
+    <a href="#games" class="hero-cta">View the catalog →</a>
+    <div class="hero-stats">
+      <div class="stat">
+        <div class="stat-num">2</div>
+        <div class="stat-label">Games</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">1</div>
+        <div class="stat-label">Input each</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">0</div>
+        <div class="stat-label">Pay-to-win</div>
+      </div>
     </div>
   </div>
 </section>
 
-<div class="divider"></div>
+<!-- TICKER -->
+<div class="ticker">
+  <div class="ticker-inner" id="tickerInner"></div>
+</div>
 
 <!-- GAMES -->
-<section class="games z" id="games">
-  <div class="container">
-    <p class="section-label">The Catalog</p>
+<section id="games">
+  <div class="section-inner">
+    <div class="section-label">The Catalog</div>
     <div class="games-grid">
 
       <!-- DODGE.IO -->
-      <div class="game-card dodge">
-        <div class="game-tag">Available Soon · Android</div>
-
-        <div class="mini-screen" id="dodge-screen">
-          <canvas id="dodge-canvas"></canvas>
-          <div class="scanlines-mini"></div>
-        </div>
-
+      <div class="game-card">
+        <div class="game-status">Available Soon · Android</div>
+        <span class="game-icon">◆</span>
         <div class="game-title">DODGE.IO</div>
         <div class="game-tagline">Survive Everything</div>
-
-        <div class="game-desc">
-          Drag your player through an endless barrage of threats — bullets, seekers, lasers, waves, spirals, and more. Each one faster than the last. Die once and it's over.
-        </div>
-
+        <p class="game-desc">Drag your player through an endless barrage of threats — bullets, seekers, lasers, waves, spirals, and more. Each one faster than the last. Die once and it's over.</p>
         <div class="game-mechanic">
-          <div class="mechanic-icon">☞</div>
-          <div class="mechanic-text">
-            <strong>Drag to Move</strong>
-            One finger. Drag anywhere to move. That's the whole game.
-          </div>
+          <div class="mechanic-input">☞ Drag to Move</div>
+          <div class="mechanic-desc">One finger. Drag anywhere to move. That's the whole game.</div>
         </div>
-
-        <a href="#" class="game-cta">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M3 18.5v-13A1.5 1.5 0 014.93 4.1l13 6.5a1.5 1.5 0 010 2.8l-13 6.5A1.5 1.5 0 013 18.5z"/></svg>
-          Coming to Google Play
-        </a>
-        <span class="coming-soon">Free · No pay-to-win<span class="blink">_</span></span>
+        <div class="game-footer">
+          <a href="#" class="game-link">Coming to Google Play</a>
+          <span class="game-badge">Free · No pay-to-win</span>
+        </div>
       </div>
 
-      <!-- SPLIT -->
-      <div class="game-card split">
-        <div class="game-tag">In Development · Android</div>
-
-
-
-        <div class="mini-screen" id="split-screen">
-          <canvas id="split-canvas"></canvas>
-          <div class="scanlines-mini"></div>
-        </div>
-
+      <!-- SPLIT.IO -->
+      <div class="game-card">
+        <div class="game-status dev">In Development · Android</div>
+        <span class="game-icon">◈</span>
         <div class="game-title">SPLIT.IO</div>
         <div class="game-tagline">Two Sides. One Tap.</div>
-
-        <div class="game-desc">
-          The screen is divided in half. A shape lives on each side. Tap anywhere to shift your focus — the active side is exposed, the other is protected. Threats flood both sides at once.
-        </div>
-
+        <p class="game-desc">The screen is divided in half. A shape lives on each side. Tap anywhere to shift your focus — the active side is exposed, the other is protected. Threats flood both sides at once.</p>
         <div class="game-mechanic">
-          <div class="mechanic-icon">◈</div>
-          <div class="mechanic-text">
-            <strong>Tap to Shift</strong>
-            One tap switches which side is exposed. Protect both or die trying.
-          </div>
+          <div class="mechanic-input">◈ Tap to Shift</div>
+          <div class="mechanic-desc">One tap switches which side is exposed. Protect both or die trying.</div>
         </div>
-
-        <a href="#" class="game-cta">
-          Coming Soon
-        </a>
-        <span class="coming-soon">Free · No pay-to-win<span class="blink">_</span></span>
+        <div class="game-footer">
+          <a href="#" class="game-link">Coming Soon</a>
+          <span class="game-badge">Free · No pay-to-win</span>
+        </div>
       </div>
 
     </div>
   </div>
 </section>
 
-<div class="divider"></div>
-
-<!-- THREAT STRIP -->
-<section class="threat-strip z">
-  <div class="container">
-    <div class="threat-strip-inner">
-      <div class="threat-chip">
-        <span class="threat-chip-icon">◆</span>
-        <div class="threat-chip-name">Bullets</div>
-        <div class="threat-chip-game">DODGE.IO</div>
+<!-- THREATS CATALOG -->
+<section class="threats-section">
+  <div class="section-inner">
+    <div class="section-label">Threat Catalog</div>
+    <div class="threats-header">
+      <div class="threats-headline">EVERY<br>THREAT.<br>CATALOGUED.</div>
+      <p class="threats-desc">Each threat type has one behavior. One movement pattern. One way to kill you. Mastery means learning all of them — then surviving when they arrive together.</p>
+    </div>
+    <div class="threats-grid">
+      <div class="threat-cell">
+        <span class="threat-symbol">◆</span>
+        <div class="threat-name">Bullets</div>
+        <div class="threat-game dodge">DODGE.IO</div>
       </div>
-      <div class="threat-chip">
-        <span class="threat-chip-icon">◉</span>
-        <div class="threat-chip-name">Seekers</div>
-        <div class="threat-chip-game">DODGE.IO</div>
+      <div class="threat-cell">
+        <span class="threat-symbol">◉</span>
+        <div class="threat-name">Seekers</div>
+        <div class="threat-game dodge">DODGE.IO</div>
       </div>
-      <div class="threat-chip">
-        <span class="threat-chip-icon">≋</span>
-        <div class="threat-chip-name">Waves</div>
-        <div class="threat-chip-game">DODGE.IO</div>
+      <div class="threat-cell">
+        <span class="threat-symbol">≋</span>
+        <div class="threat-name">Waves</div>
+        <div class="threat-game dodge">DODGE.IO</div>
       </div>
-      <div class="threat-chip">
-        <span class="threat-chip-icon">✸</span>
-        <div class="threat-chip-name">Bombers</div>
-        <div class="threat-chip-game">DODGE.IO</div>
+      <div class="threat-cell">
+        <span class="threat-symbol">✸</span>
+        <div class="threat-name">Bombers</div>
+        <div class="threat-game dodge">DODGE.IO</div>
       </div>
-      <div class="threat-chip">
-        <span class="threat-chip-icon">—</span>
-        <div class="threat-chip-name">Lasers</div>
-        <div class="threat-chip-game">DODGE.IO</div>
+      <div class="threat-cell">
+        <span class="threat-symbol">—</span>
+        <div class="threat-name">Lasers</div>
+        <div class="threat-game dodge">DODGE.IO</div>
       </div>
-      <div class="threat-chip">
-        <span class="threat-chip-icon">@</span>
-        <div class="threat-chip-name">Spirals</div>
-        <div class="threat-chip-game">DODGE.IO</div>
+      <div class="threat-cell">
+        <span class="threat-symbol">@</span>
+        <div class="threat-name">Spirals</div>
+        <div class="threat-game dodge">DODGE.IO</div>
       </div>
-      <div class="threat-chip">
-        <span class="threat-chip-icon">⋈</span>
-        <div class="threat-chip-name">Splitters</div>
-        <div class="threat-chip-game">DODGE.IO</div>
+      <div class="threat-cell">
+        <span class="threat-symbol">⋈</span>
+        <div class="threat-name">Splitters</div>
+        <div class="threat-game dodge">DODGE.IO</div>
       </div>
-      <div class="threat-chip">
-        <span class="threat-chip-icon">⊕</span>
-        <div class="threat-chip-name">Teleporters</div>
-        <div class="threat-chip-game">DODGE.IO</div>
+      <div class="threat-cell">
+        <span class="threat-symbol">⊕</span>
+        <div class="threat-name">Teleporters</div>
+        <div class="threat-game dodge">DODGE.IO</div>
       </div>
-      <div class="threat-chip">
-        <span class="threat-chip-icon">→</span>
-        <div class="threat-chip-name">Darts</div>
-        <div class="threat-chip-game">SPLIT.IO</div>
+      <div class="threat-cell">
+        <span class="threat-symbol">→</span>
+        <div class="threat-name">Darts</div>
+        <div class="threat-game split">SPLIT.IO</div>
       </div>
-      <div class="threat-chip">
-        <span class="threat-chip-icon">~</span>
-        <div class="threat-chip-name">Drifters</div>
-        <div class="threat-chip-game">SPLIT.IO</div>
+      <div class="threat-cell">
+        <span class="threat-symbol">~</span>
+        <div class="threat-name">Drifters</div>
+        <div class="threat-game split">SPLIT.IO</div>
       </div>
-      <div class="threat-chip">
-        <span class="threat-chip-icon">◎</span>
-        <div class="threat-chip-name">Pulses</div>
-        <div class="threat-chip-game">SPLIT.IO</div>
+      <div class="threat-cell">
+        <span class="threat-symbol">◎</span>
+        <div class="threat-name">Pulses</div>
+        <div class="threat-game split">SPLIT.IO</div>
       </div>
-      <div class="threat-chip">
-        <span class="threat-chip-icon">👻</span>
-        <div class="threat-chip-name">Ghosts</div>
-        <div class="threat-chip-game">SPLIT.IO</div>
+      <div class="threat-cell">
+        <span class="threat-symbol">👻</span>
+        <div class="threat-name">Ghosts</div>
+        <div class="threat-game split">SPLIT.IO</div>
       </div>
     </div>
   </div>
 </section>
-
-<div class="divider"></div>
 
 <!-- STUDIO -->
-<section class="studio z" id="studio">
-  <div class="container">
-    <p class="section-label">The Studio</p>
-    <div class="studio-inner">
+<section class="studio-section" id="studio">
+  <div class="section-inner">
+    <div class="section-label">The Studio</div>
+    <div class="studio-grid">
       <div>
-        <h2 class="studio-title">VIBE<br><span class="accent">GAMES</span></h2>
-        <p class="studio-desc">
-          One person. Clean mechanics. No BS.<br><br>
-          Vibe Games is an indie mobile game studio focused on a single principle: strip the game down to one mechanic and make that mechanic feel exceptional. No gacha, no paywalls, no endless content drip. Just tight, replayable arcade loops built for the five minutes you have between things.
-        </p>
-        <div class="studio-pillars">
-          <div class="pillar">
-            <div class="pillar-num">01</div>
-            <div class="pillar-text">
-              <strong>One mechanic per game</strong>
-              Every game in the catalog is built around a single input. The depth comes from mastery, not complexity.
+        <div class="studio-headline">VIBE<br>GAMES</div>
+        <p class="studio-body">One person. Clean mechanics. No BS.<br><br>Vibe Games is an indie mobile game studio focused on a single principle: strip the game down to one mechanic and make that mechanic feel exceptional. No gacha, no paywalls, no endless content drip. Just tight, replayable arcade loops built for the five minutes you have between things.</p>
+
+        <div class="principles">
+          <div class="principle">
+            <span class="principle-num">01</span>
+            <div>
+              <div class="principle-title">One mechanic per game</div>
+              <div class="principle-body">Every game in the catalog is built around a single input. The depth comes from mastery, not complexity.</div>
             </div>
           </div>
-          <div class="pillar">
-            <div class="pillar-num">02</div>
-            <div class="pillar-text">
-              <strong>Free. Actually free.</strong>
-              One optional rewarded ad for an extra life. That's the entire monetization model across every title.
+          <div class="principle">
+            <span class="principle-num">02</span>
+            <div>
+              <div class="principle-title">Free. Actually free.</div>
+              <div class="principle-body">One optional rewarded ad for an extra life. That's the entire monetization model across every title.</div>
             </div>
           </div>
-          <div class="pillar">
-            <div class="pillar-num">03</div>
-            <div class="pillar-text">
-              <strong>Daily challenge in every game</strong>
-              Same seed, global competition. One shot per day. Keeps the catalog alive long-term.
+          <div class="principle">
+            <span class="principle-num">03</span>
+            <div>
+              <div class="principle-title">Daily challenge in every game</div>
+              <div class="principle-body">Same seed, global competition. One shot per day. Keeps the catalog alive long-term.</div>
             </div>
           </div>
         </div>
       </div>
-      <div>
-        <div class="stat-grid-studio">
-          <div class="studio-stat">
-            <span class="studio-stat-num">2</span>
-            <span class="studio-stat-label">Games in Catalog</span>
-          </div>
-          <div class="studio-stat">
-            <span class="studio-stat-num">1</span>
-            <span class="studio-stat-label">Input Per Game</span>
-          </div>
-          <div class="studio-stat">
-            <span class="studio-stat-num">0</span>
-            <span class="studio-stat-label">Pay-to-Win Elements</span>
-          </div>
-          <div class="studio-stat">
-            <span class="studio-stat-num">∞</span>
-            <span class="studio-stat-label">Replayability</span>
-          </div>
+
+      <div class="studio-metrics">
+        <div class="metric">
+          <div class="metric-val accent">2</div>
+          <div class="metric-label">Games in Catalog</div>
+        </div>
+        <div class="metric">
+          <div class="metric-val">1</div>
+          <div class="metric-label">Input Per Game</div>
+        </div>
+        <div class="metric">
+          <div class="metric-val red">0</div>
+          <div class="metric-label">Pay-to-Win Elements</div>
+        </div>
+        <div class="metric">
+          <div class="metric-val">∞</div>
+          <div class="metric-label">Replayability</div>
         </div>
       </div>
     </div>
@@ -789,255 +957,85 @@
 </section>
 
 <!-- FOOTER -->
-<footer class="z">
-  <div class="footer-copy">© 2026 Sean Harding / Vibe Games. All rights reserved.</div>
-  <div class="footer-links">
-    <a href="privacy.html">Privacy Policy</a>
-    <a href="mailto:contact@playvibegames.app">contact@playvibegames.app</a>
-  </div>
+<footer>
+  <span class="footer-copy">© 2026 Sean Harding / Vibe Games. All rights reserved.</span>
+  <ul class="footer-links">
+    <li><a href="#">Privacy Policy</a></li>
+    <li><a href="mailto:contact@playvibegames.app">contact@playvibegames.app</a></li>
+  </ul>
 </footer>
 
 <script>
-// ── BACKGROUND PARTICLES ──
-const bgCanvas = document.getElementById('bg-canvas');
-const bgCtx = bgCanvas.getContext('2d');
+  // Floating threat symbols in hero
+  const symbols = ['◆','◉','≋','✸','—','@','⋈','⊕','→','~','◎','👻'];
+  const container = document.getElementById('threatsFloat');
 
-function resizeBg() { bgCanvas.width = window.innerWidth; bgCanvas.height = window.innerHeight; }
-resizeBg();
-window.addEventListener('resize', resizeBg);
+  for (let i = 0; i < 18; i++) {
+    const el = document.createElement('span');
+    el.className = 'threat-float';
+    el.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+    el.style.left = Math.random() * 100 + '%';
+    el.style.animationDuration = (12 + Math.random() * 20) + 's';
+    el.style.animationDelay = (-Math.random() * 20) + 's';
+    el.style.fontSize = (0.7 + Math.random() * 1.2) + 'rem';
+    container.appendChild(el);
+  }
 
-const COLORS = ['#00f5ff', '#ff2d55', '#ffd60a', '#7b2fff'];
-const particles = Array.from({ length: 50 }, () => ({
-  x: Math.random() * window.innerWidth,
-  y: Math.random() * window.innerHeight,
-  vx: (Math.random() - 0.5) * 0.3,
-  vy: (Math.random() - 0.5) * 0.3,
-  size: Math.random() * 1.5 + 0.5,
-  color: COLORS[Math.floor(Math.random() * COLORS.length)],
-  alpha: Math.random() * 0.2 + 0.04,
-}));
+  // Ticker
+  const tickerItems = [
+    { label: 'DODGE.IO', note: 'Available Soon' },
+    { label: 'SPLIT.IO', note: 'In Development' },
+    { label: 'One Mechanic', note: 'Per Game' },
+    { label: 'Zero', note: 'Pay-to-Win' },
+    { label: 'Daily Challenges', note: 'Global Leaderboard' },
+    { label: 'Free', note: 'Actually Free' },
+    { label: 'One Life', note: 'No Second Chances' },
+    { label: 'DODGE.IO', note: 'Drag to Move' },
+    { label: 'SPLIT.IO', note: 'Tap to Shift' },
+  ];
 
-function drawBg() {
-  bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
-  particles.forEach(p => {
-    p.x = (p.x + p.vx + bgCanvas.width) % bgCanvas.width;
-    p.y = (p.y + p.vy + bgCanvas.height) % bgCanvas.height;
-    bgCtx.beginPath();
-    bgCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-    bgCtx.fillStyle = p.color;
-    bgCtx.globalAlpha = p.alpha;
-    bgCtx.fill();
-    bgCtx.globalAlpha = 1;
+  const ticker = document.getElementById('tickerInner');
+  const doubled = [...tickerItems, ...tickerItems];
+  ticker.innerHTML = doubled.map(t =>
+    `<span class="ticker-item"><span>${t.label}</span>${t.note}</span>`
+  ).join('');
+
+  // Subtle cursor trail
+  document.addEventListener('mousemove', (e) => {
+    const dot = document.createElement('div');
+    dot.style.cssText = `
+      position:fixed;left:${e.clientX}px;top:${e.clientY}px;
+      width:3px;height:3px;background:rgba(232,255,71,0.4);
+      pointer-events:none;z-index:9999;
+      transform:translate(-50%,-50%);
+      animation:dotFade 0.5s ease forwards;
+    `;
+    document.body.appendChild(dot);
+    setTimeout(() => dot.remove(), 500);
   });
-  requestAnimationFrame(drawBg);
-}
-drawBg();
 
-// ── MINI CANVAS SETUP ──
-function setupCanvas(canvasId, screenId) {
-  const canvas = document.getElementById(canvasId);
-  const screen = document.getElementById(screenId);
-  canvas.width = screen.offsetWidth;
-  canvas.height = screen.offsetHeight;
-  return canvas.getContext('2d');
-}
-
-// ── DODGE.IO MINI PREVIEW ──
-(function() {
-  const canvas = document.getElementById('dodge-canvas');
-  const screen = document.getElementById('dodge-screen');
-  canvas.width = screen.offsetWidth;
-  canvas.height = screen.offsetHeight;
-  const ctx = canvas.getContext('2d');
-
-  const player = { x: canvas.width / 2, y: canvas.height / 2, r: 4, trail: [] };
-  const threats = [];
-
-  function spawnThreat() {
-    const side = Math.floor(Math.random() * 4);
-    let x, y;
-    if (side === 0) { x = Math.random() * canvas.width; y = -8; }
-    else if (side === 1) { x = canvas.width + 8; y = Math.random() * canvas.height; }
-    else if (side === 2) { x = Math.random() * canvas.width; y = canvas.height + 8; }
-    else { x = -8; y = Math.random() * canvas.height; }
-    const cx = canvas.width / 2, cy = canvas.height / 2;
-    const angle = Math.atan2(cy - y, cx - x) + (Math.random() - 0.5) * 0.6;
-    const speed = 1.2 + Math.random();
-    const colors = ['#00f5ff', '#ff2d55', '#ffd60a'];
-    threats.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, r: 3 + Math.random() * 2, color: colors[Math.floor(Math.random() * 3)] });
-  }
-
-  let t = 0;
-  function frame() {
-    t++;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Grid
-    ctx.strokeStyle = 'rgba(0,245,255,0.05)';
-    ctx.lineWidth = 0.5;
-    for (let x = 0; x < canvas.width; x += 20) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke(); }
-    for (let y = 0; y < canvas.height; y += 20) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke(); }
-
-    // Player movement (figure 8)
-    const tx = canvas.width/2 + Math.sin(t * 0.01) * canvas.width * 0.28;
-    const ty = canvas.height/2 + Math.sin(t * 0.02) * canvas.height * 0.22;
-    player.x += (tx - player.x) * 0.07;
-    player.y += (ty - player.y) * 0.07;
-
-    player.trail.push({ x: player.x, y: player.y });
-    if (player.trail.length > 15) player.trail.shift();
-
-    player.trail.forEach((p, i) => {
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, player.r * (i / player.trail.length), 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(0,245,255,${i / player.trail.length * 0.35})`;
-      ctx.fill();
-    });
-
-    ctx.beginPath();
-    ctx.arc(player.x, player.y, player.r, 0, Math.PI * 2);
-    ctx.fillStyle = '#00f5ff';
-    ctx.shadowColor = '#00f5ff';
-    ctx.shadowBlur = 10;
-    ctx.fill();
-    ctx.shadowBlur = 0;
-
-    if (t % 40 === 0) spawnThreat();
-
-    for (let i = threats.length - 1; i >= 0; i--) {
-      const th = threats[i];
-      th.x += th.vx; th.y += th.vy;
-      ctx.beginPath();
-      ctx.arc(th.x, th.y, th.r, 0, Math.PI * 2);
-      ctx.fillStyle = th.color;
-      ctx.shadowColor = th.color;
-      ctx.shadowBlur = 6;
-      ctx.fill();
-      ctx.shadowBlur = 0;
-      if (th.x < -15 || th.x > canvas.width + 15 || th.y < -15 || th.y > canvas.height + 15) threats.splice(i, 1);
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes dotFade {
+      0% { opacity:1; transform:translate(-50%,-50%) scale(1); }
+      100% { opacity:0; transform:translate(-50%,-50%) scale(0); }
     }
+  `;
+  document.head.appendChild(style);
 
-    requestAnimationFrame(frame);
-  }
-  frame();
-})();
-
-// ── SPLIT MINI PREVIEW ──
-(function() {
-  const canvas = document.getElementById('split-canvas');
-  const screen = document.getElementById('split-screen');
-  canvas.width = screen.offsetWidth;
-  canvas.height = screen.offsetHeight;
-  const ctx = canvas.getContext('2d');
-
-  const mid = canvas.width / 2;
-  let activeLeft = true;
-  let switchTimer = 0;
-  const threats = [];
-
-  function spawnThreat(side) {
-    const halfW = canvas.width / 2;
-    const ox = side === 'left' ? 0 : halfW;
-    const edge = Math.floor(Math.random() * 3);
-    let x, y;
-    if (edge === 0) { x = ox + Math.random() * halfW; y = -6; }
-    else if (edge === 1) { x = ox + Math.random() * halfW; y = canvas.height + 6; }
-    else if (edge === 2) { x = (side === 'left') ? -6 : ox; y = Math.random() * canvas.height; }
-    const cx = ox + halfW / 2;
-    const cy = canvas.height / 2;
-    const angle = Math.atan2(cy - y, cx - x) + (Math.random() - 0.5) * 0.4;
-    const speed = 1.0 + Math.random() * 0.8;
-    threats.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, r: 3, side, color: side === 'left' ? '#ff2d55' : '#ffd60a' });
-  }
-
-  let t = 0;
-  function frame() {
-    t++;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Background grid
-    ctx.strokeStyle = 'rgba(0,245,255,0.04)';
-    ctx.lineWidth = 0.5;
-    for (let x = 0; x < canvas.width; x += 16) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke(); }
-    for (let y = 0; y < canvas.height; y += 16) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke(); }
-
-    // Auto-switch sides periodically
-    switchTimer++;
-    if (switchTimer > 90 + Math.random() * 60) {
-      activeLeft = !activeLeft;
-      switchTimer = 0;
-    }
-
-    // Half overlays
-    ctx.fillStyle = activeLeft ? 'rgba(0,245,255,0.03)' : 'rgba(0,0,0,0.3)';
-    ctx.fillRect(0, 0, mid, canvas.height);
-    ctx.fillStyle = !activeLeft ? 'rgba(0,245,255,0.03)' : 'rgba(0,0,0,0.3)';
-    ctx.fillRect(mid, 0, mid, canvas.height);
-
-    // Divider line
-    ctx.strokeStyle = switchTimer < 8 ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.15)';
-    ctx.lineWidth = 1;
-    ctx.setLineDash([4, 4]);
-    ctx.beginPath();
-    ctx.moveTo(mid, 0);
-    ctx.lineTo(mid, canvas.height);
-    ctx.stroke();
-    ctx.setLineDash([]);
-
-    // Player shapes
-    const leftActive = activeLeft;
-    const rightActive = !activeLeft;
-
-    [[canvas.width * 0.25, canvas.height * 0.5, leftActive],
-     [canvas.width * 0.75, canvas.height * 0.5, rightActive]].forEach(([px, py, active]) => {
-      const color = active ? '#00f5ff' : '#1a2a35';
-      ctx.beginPath();
-      ctx.arc(px, py, 5, 0, Math.PI * 2);
-      ctx.fillStyle = color;
-      ctx.shadowColor = active ? '#00f5ff' : 'transparent';
-      ctx.shadowBlur = active ? 12 : 0;
-      ctx.fill();
-      ctx.shadowBlur = 0;
-
-      if (active) {
-        ctx.beginPath();
-        ctx.arc(px, py, 9, 0, Math.PI * 2);
-        ctx.strokeStyle = 'rgba(0,245,255,0.25)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
+  // Intersection observer for threat cells
+  const cells = document.querySelectorAll('.threat-cell');
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        entry.target.style.animation = `fadeUp 0.4s ease ${i * 0.04}s forwards`;
+        entry.target.style.opacity = '0';
+        obs.unobserve(entry.target);
       }
     });
+  }, { threshold: 0.1 });
 
-    // Threats
-    if (t % 50 === 0) spawnThreat('left');
-    if (t % 55 === 0) spawnThreat('right');
-
-    for (let i = threats.length - 1; i >= 0; i--) {
-      const th = threats[i];
-      th.x += th.vx; th.y += th.vy;
-      ctx.beginPath();
-      ctx.arc(th.x, th.y, th.r, 0, Math.PI * 2);
-      ctx.fillStyle = th.color;
-      ctx.shadowColor = th.color;
-      ctx.shadowBlur = 6;
-      ctx.fill();
-      ctx.shadowBlur = 0;
-      if (th.x < -10 || th.x > canvas.width + 10 || th.y < -10 || th.y > canvas.height + 10) threats.splice(i, 1);
-    }
-
-    // SHIFT label flash
-    if (switchTimer < 12) {
-      ctx.fillStyle = `rgba(255,255,255,${(12 - switchTimer) / 12 * 0.6})`;
-      ctx.font = `bold 7px 'Space Mono', monospace`;
-      ctx.textAlign = 'center';
-      ctx.fillText('SHIFT', mid, canvas.height / 2 - 15);
-      ctx.textAlign = 'left';
-    }
-
-    requestAnimationFrame(frame);
-  }
-  frame();
-})();
+  cells.forEach(c => obs.observe(c));
 </script>
 </body>
 </html>
