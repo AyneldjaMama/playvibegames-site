@@ -16,7 +16,7 @@
     --text: #e8e8e8;
     --muted: #555;
     --dim: #333;
-    --accent: #e8ff47;
+    --accent: #47d4ff;
     --accent2: #ff4747;
     --mono: 'Space Mono', monospace;
     --display: 'Barlow Condensed', sans-serif;
@@ -36,7 +36,7 @@
     cursor: crosshair;
   }
 
-  ::selection { background: var(--accent); color: #000; }
+  ::selection { background: var(--accent); color: #fff; }
 
   /* SCANLINE OVERLAY */
   body::before {
@@ -106,11 +106,11 @@
 
   /* HERO */
   .hero {
-    min-height: 100vh;
+    min-height: auto;
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
-    padding: 52px 2rem 3rem;
+    padding: 100px 2rem 3rem;
     position: relative;
     overflow: hidden;
   }
@@ -127,8 +127,8 @@
     position: absolute;
     inset: 0;
     background-image:
-      linear-gradient(rgba(232,255,71,0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(232,255,71,0.03) 1px, transparent 1px);
+      linear-gradient(rgba(71,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(71,212,255,0.03) 1px, transparent 1px);
     background-size: 60px 60px;
     animation: gridDrift 20s linear infinite;
   }
@@ -148,7 +148,7 @@
 
   .threat-float {
     position: absolute;
-    color: rgba(232,255,71,0.06);
+    color: rgba(71,212,255,0.06);
     font-size: 1.2rem;
     animation: floatUp linear infinite;
     font-family: var(--mono);
@@ -190,7 +190,7 @@
 
   .hero-headline .line2 {
     color: transparent;
-    -webkit-text-stroke: 1px rgba(232,255,71,0.4);
+    -webkit-text-stroke: 1px rgba(71,212,255,0.4);
   }
 
   .hero-sub {
@@ -233,7 +233,7 @@
     content: '';
     position: absolute;
     inset: 3px -3px -3px 3px;
-    background: rgba(232,255,71,0.2);
+    background: rgba(71,212,255,0.2);
     z-index: -1;
     transition: all 0.1s;
   }
@@ -320,7 +320,7 @@
     --card-accent: var(--accent);
   }
 
-  .game-card.dodge { --card-accent: #e8ff47; }
+  .game-card.dodge { --card-accent: #47d4ff; }
   .game-card.split { --card-accent: #ff4747; }
 
   .game-card::before {
@@ -580,7 +580,7 @@
     font-family: var(--mono);
   }
 
-  .threat-game.dodge { color: rgba(232,255,71,0.6); }
+  .threat-game.dodge { color: rgba(71,212,255,0.6); }
   .threat-game.split { color: rgba(255,71,71,0.6); }
 
   /* STUDIO */
@@ -723,15 +723,6 @@
   }
 
   .hero-headline { position: relative; }
-  .hero-headline::after {
-    content: attr(data-text);
-    position: absolute;
-    left: 0; top: 0;
-    color: var(--accent);
-    animation: glitch 8s ease-in-out infinite;
-    opacity: 0.6;
-    pointer-events: none;
-  }
 
   /* ENTRANCE ANIMATIONS */
   .fade-up {
@@ -829,7 +820,6 @@
   <p class="hero-sub fade-up">Pure reflex. No filler.</p>
 
   <div class="hero-bottom fade-up">
-    <a href="#games" class="hero-cta">View the catalog →</a>
     <div class="hero-stats">
       <div class="stat">
         <div class="stat-num">2</div>
@@ -1088,7 +1078,7 @@
     const dot = document.createElement('div');
     dot.style.cssText = `
       position:fixed;left:${e.clientX}px;top:${e.clientY}px;
-      width:3px;height:3px;background:rgba(232,255,71,0.4);
+      width:3px;height:3px;background:rgba(71,212,255,0.4);
       pointer-events:none;z-index:9999;
       transform:translate(-50%,-50%);
       animation:dotFade 0.5s ease forwards;
