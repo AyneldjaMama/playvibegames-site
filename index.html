@@ -316,33 +316,90 @@
     background: var(--surface);
   }
 
+  .game-card {
+    --card-accent: var(--accent);
+  }
+
+  .game-card.dodge { --card-accent: #e8ff47; }
+  .game-card.split { --card-accent: #ff4747; }
+
   .game-card::before {
     content: '';
     position: absolute;
     top: 0; left: 0;
     width: 3px;
     height: 0;
-    background: var(--accent);
+    background: var(--card-accent);
     transition: height 0.3s ease;
   }
 
   .game-card:hover::before { height: 100%; }
 
+  .game-card:hover {
+    border-color: var(--card-accent);
+  }
+
+  .game-preview {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border: 1px solid var(--border);
+    margin-bottom: 2rem;
+    overflow: hidden;
+    position: relative;
+    background: #000;
+  }
+
+  .game-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .game-preview .play-web {
+    position: absolute;
+    bottom: 0.75rem;
+    right: 0.75rem;
+    font-family: var(--mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #000;
+    background: var(--card-accent);
+    padding: 0.4rem 0.8rem;
+    text-decoration: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .game-preview:hover .play-web {
+    opacity: 1;
+  }
+
   .game-status {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
     font-size: 0.55rem;
     letter-spacing: 0.15em;
     text-transform: uppercase;
-    color: #000;
-    background: var(--accent);
+    color: var(--card-accent);
+    border: 1px solid var(--card-accent);
     padding: 0.25rem 0.6rem;
     margin-bottom: 2rem;
   }
 
-  .game-status.dev {
-    background: transparent;
-    color: var(--muted);
-    border: 1px solid var(--border-active);
+  .game-status .pulse {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--card-accent);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
   }
 
   .game-icon {
@@ -350,6 +407,7 @@
     margin-bottom: 1rem;
     display: block;
     line-height: 1;
+    color: var(--card-accent);
   }
 
   .game-title {
@@ -361,6 +419,11 @@
     text-transform: uppercase;
     color: var(--text);
     margin-bottom: 0.3rem;
+  }
+
+  .game-card:hover .game-title {
+    color: var(--card-accent);
+    transition: color 0.2s;
   }
 
   .game-tagline {
@@ -417,14 +480,20 @@
     font-size: 0.65rem;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--accent);
+    color: var(--card-accent);
     text-decoration: none;
-    border-bottom: 1px solid rgba(232,255,71,0.3);
+    border-bottom: 1px solid currentColor;
     padding-bottom: 2px;
-    transition: border-color 0.15s;
+    opacity: 0.7;
+    transition: opacity 0.15s;
   }
 
-  .game-link:hover { border-color: var(--accent); }
+  .game-link:hover { opacity: 1; }
+
+  .game-link .play-store-icon {
+    width: 14px;
+    height: 14px;
+  }
 
   .game-badge {
     font-size: 0.55rem;
@@ -790,8 +859,12 @@
     <div class="games-grid">
 
       <!-- DODGE.IO -->
-      <div class="game-card">
-        <div class="game-status">Live on Google Play</div>
+      <div class="game-card dodge">
+        <div class="game-status"><span class="pulse"></span> Coming Soon on Google Play</div>
+        <div class="game-preview">
+          <img src="gameplay-dodge.gif" alt="DODGE.IO gameplay — drag to dodge endless threats">
+          <a href="#" class="play-web">Play in Browser →</a>
+        </div>
         <span class="game-icon">◆</span>
         <div class="game-title">DODGE.IO</div>
         <div class="game-tagline">Survive Everything</div>
@@ -801,14 +874,21 @@
           <div class="mechanic-desc">One finger. Drag anywhere to move. That's the whole game.</div>
         </div>
         <div class="game-footer">
-          <a href="https://play.google.com/store/apps/details?id=io.dodge.game" class="game-link" target="_blank" rel="noopener">Download on Google Play ↗</a>
+          <a href="#" class="game-link">
+            <svg class="play-store-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M3.609 1.814L13.792 12 3.61 22.186a.996.996 0 0 1-.61-.92V2.734a1 1 0 0 1 .609-.92zm10.89 10.893l2.302 2.302-10.937 6.333 8.635-8.635zm3.199-3.199l2.302 2.302a1 1 0 0 1 0 1.38l-2.302 2.302L15.09 12l2.608-2.492zM5.864 3.458L16.8 9.79l-2.302 2.302-8.634-8.634z"/></svg>
+            Coming Soon ↗
+          </a>
           <span class="game-badge">Free · No pay-to-win</span>
         </div>
       </div>
 
       <!-- SPLIT.IO -->
-      <div class="game-card">
-        <div class="game-status dev">In Development · Android</div>
+      <div class="game-card split">
+        <div class="game-status"><span class="pulse"></span> Coming Soon on Google Play</div>
+        <div class="game-preview">
+          <img src="gameplay-split.gif" alt="SPLIT.IO gameplay — tap to shift between two sides">
+          <a href="#" class="play-web">Play in Browser →</a>
+        </div>
         <span class="game-icon">◈</span>
         <div class="game-title">SPLIT.IO</div>
         <div class="game-tagline">Two Sides. One Tap.</div>
@@ -818,7 +898,10 @@
           <div class="mechanic-desc">One tap switches which side is exposed. Protect both or die trying.</div>
         </div>
         <div class="game-footer">
-          <a href="#" class="game-link">Coming Soon</a>
+          <a href="#" class="game-link">
+            <svg class="play-store-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M3.609 1.814L13.792 12 3.61 22.186a.996.996 0 0 1-.61-.92V2.734a1 1 0 0 1 .609-.92zm10.89 10.893l2.302 2.302-10.937 6.333 8.635-8.635zm3.199-3.199l2.302 2.302a1 1 0 0 1 0 1.38l-2.302 2.302L15.09 12l2.608-2.492zM5.864 3.458L16.8 9.79l-2.302 2.302-8.634-8.634z"/></svg>
+            Coming Soon ↗
+          </a>
           <span class="game-badge">Free · No pay-to-win</span>
         </div>
       </div>
