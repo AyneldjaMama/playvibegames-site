@@ -3,51 +3,251 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Privacy Policy – Vibe Games</title>
+<title>Privacy Policy — Vibe Games</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Barlow+Condensed:wght@300;400;600;800&display=swap" rel="stylesheet">
 <style>
-  body { font-family: Georgia, serif; max-width: 800px; margin: 40px auto; padding: 0 20px; color: #222; line-height: 1.7; }
-  h1 { font-size: 1.8em; }
-  h2 { font-size: 1.2em; margin-top: 2em; }
-  p, li { font-size: 1em; }
+  :root {
+    --bg: #080808;
+    --surface: #0f0f0f;
+    --border: #1e1e1e;
+    --text: #e8e8e8;
+    --muted: #555;
+    --dim: #333;
+    --accent: #47d4ff;
+    --mono: 'Space Mono', monospace;
+    --display: 'Barlow Condensed', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 16px; scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.04) 2px, rgba(0,0,0,0.04) 4px);
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2rem;
+    height: 52px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(8,8,8,0.92);
+    backdrop-filter: blur(12px);
+  }
+
+  .nav-logo {
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: 1.1rem;
+    letter-spacing: 0.18em;
+    color: var(--text);
+    text-decoration: none;
+    text-transform: uppercase;
+  }
+
+  .nav-logo span { color: var(--accent); }
+
+  .nav-back {
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+
+  .nav-back:hover { color: var(--text); }
+
+  .policy-container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 100px 2rem 5rem;
+  }
+
+  .policy-label {
+    font-size: 0.55rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .policy-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .policy-title {
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    line-height: 0.9;
+    text-transform: uppercase;
+    color: var(--text);
+    margin-bottom: 1rem;
+  }
+
+  .policy-date {
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    margin-bottom: 3rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .policy-section { margin-bottom: 2.5rem; }
+
+  .policy-section h2 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 1.3rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text);
+    margin-bottom: 1rem;
+  }
+
+  .policy-section p,
+  .policy-section ul {
+    font-size: 0.72rem;
+    color: #888;
+    line-height: 2;
+    margin-bottom: 1rem;
+  }
+
+  .policy-section ul { padding-left: 1.5rem; }
+  .policy-section li { margin-bottom: 0.5rem; }
+  .policy-section a { color: var(--accent); }
+
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .footer-copy {
+    font-size: 0.6rem;
+    color: var(--dim);
+    letter-spacing: 0.08em;
+  }
+
+  .footer-links {
+    display: flex;
+    gap: 2rem;
+    list-style: none;
+  }
+
+  .footer-links a {
+    font-size: 0.6rem;
+    color: var(--muted);
+    text-decoration: none;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    transition: color 0.15s;
+  }
+
+  .footer-links a:hover { color: var(--text); }
+
+  @media (max-width: 768px) {
+    nav { padding: 0 1rem; }
+    .policy-container { padding: 80px 1rem 3rem; }
+    footer { flex-direction: column; gap: 1.5rem; text-align: center; }
+  }
 </style>
 </head>
 <body>
 
-<h1>Privacy Policy – Vibe Games</h1>
-<p><em>Last updated: March 1, 2026</em></p>
+<nav>
+  <a href="index.html" class="nav-logo">Vibe <span>Games</span></a>
+  <a href="index.html" class="nav-back">&larr; Back to Home</a>
+</nav>
 
-<p>This Privacy Policy describes how the mobile games and apps published by Vibe Games ("the Apps," "we," "us," or "our"), operated by Sean Harding, handle information when you use them.</p>
+<div class="policy-container">
+  <div class="policy-label">Legal</div>
+  <h1 class="policy-title">Privacy Policy</h1>
+  <p class="policy-date">Last updated: March 1, 2026</p>
 
-<h2>1. Information We Collect</h2>
-<p>Vibe Games apps do not directly collect or store any personally identifiable information. We do not require you to create an account or provide your name, email address, or any other personal details to use our apps.</p>
-<p>The apps may store the following data <strong>locally on your device only</strong>:</p>
-<ul>
-  <li>Your high scores and game statistics</li>
-</ul>
-<p>This data never leaves your device and is not accessible to us.</p>
+  <div class="policy-section">
+    <h2>Overview</h2>
+    <p>This Privacy Policy describes how the mobile games and apps published by Vibe Games ("the Apps," "we," "us," or "our"), operated by Sean Harding, handle information when you use them.</p>
+  </div>
 
-<h2>2. Third-Party Advertising (Google AdMob)</h2>
-<p>Some Vibe Games apps use Google AdMob to serve rewarded video advertisements. AdMob may collect and use certain information to provide personalized ads, including:</p>
-<ul>
-  <li>Device identifiers (such as Advertising ID)</li>
-  <li>IP address and approximate location</li>
-  <li>Device type, operating system, and language settings</li>
-  <li>Ad interaction data (e.g., whether an ad was viewed or clicked)</li>
-</ul>
-<p>This data is collected by Google, not by us, and is subject to <a href="https://policies.google.com/privacy">Google's Privacy Policy</a>. You can opt out of personalized advertising by adjusting your device settings:</p>
-<ul>
-  <li><strong>Android:</strong> Settings → Google → Ads → Opt out of Ads Personalization</li>
-  <li><strong>iOS:</strong> Settings → Privacy → Tracking → disable "Allow Apps to Request to Track"</li>
-</ul>
+  <div class="policy-section">
+    <h2>1. Information We Collect</h2>
+    <p>Vibe Games apps do not directly collect or store any personally identifiable information. We do not require you to create an account or provide your name, email address, or any other personal details to use our apps.</p>
+    <p>The apps may store the following data <strong>locally on your device only</strong>:</p>
+    <ul>
+      <li>Your high scores and game statistics</li>
+    </ul>
+    <p>This data never leaves your device and is not accessible to us.</p>
+  </div>
 
-<h2>3. Children's Privacy</h2>
-<p>Our apps are not directed at children under the age of 13. We do not knowingly collect personal information from children. If you believe a child has provided personal information through our apps, please contact us and we will take steps to delete it.</p>
+  <div class="policy-section">
+    <h2>2. Third-Party Advertising (Google AdMob)</h2>
+    <p>Some Vibe Games apps use Google AdMob to serve rewarded video advertisements. AdMob may collect and use certain information to provide personalized ads, including:</p>
+    <ul>
+      <li>Device identifiers (such as Advertising ID)</li>
+      <li>IP address and approximate location</li>
+      <li>Device type, operating system, and language settings</li>
+      <li>Ad interaction data (e.g., whether an ad was viewed or clicked)</li>
+    </ul>
+    <p>This data is collected by Google, not by us, and is subject to <a href="https://policies.google.com/privacy">Google's Privacy Policy</a>. You can opt out of personalized advertising by adjusting your device settings:</p>
+    <ul>
+      <li><strong>Android:</strong> Settings &rarr; Google &rarr; Ads &rarr; Opt out of Ads Personalization</li>
+      <li><strong>iOS:</strong> Settings &rarr; Privacy &rarr; Tracking &rarr; disable "Allow Apps to Request to Track"</li>
+    </ul>
+  </div>
 
-<h2>4. Changes to This Policy</h2>
-<p>We may update this Privacy Policy from time to time. Any changes will be reflected on this page with an updated date.</p>
+  <div class="policy-section">
+    <h2>3. Children's Privacy</h2>
+    <p>Our apps are not directed at children under the age of 13. We do not knowingly collect personal information from children. If you believe a child has provided personal information through our apps, please contact us and we will take steps to delete it.</p>
+  </div>
 
-<h2>5. Contact Us</h2>
-<p>If you have questions about this Privacy Policy, contact us at: <a href="mailto:support@playvibegames.com">support@playvibegames.com</a></p>
+  <div class="policy-section">
+    <h2>4. Changes to This Policy</h2>
+    <p>We may update this Privacy Policy from time to time. Any changes will be reflected on this page with an updated date.</p>
+  </div>
+
+  <div class="policy-section">
+    <h2>5. Contact Us</h2>
+    <p>If you have questions about this Privacy Policy, contact us at: <a href="mailto:contact@playvibegames.app">contact@playvibegames.app</a></p>
+  </div>
+</div>
+
+<footer>
+  <span class="footer-copy">&copy; 2026 Sean Harding / Vibe Games. All rights reserved.</span>
+  <ul class="footer-links">
+    <li><a href="mailto:contact@playvibegames.app">contact@playvibegames.app</a></li>
+  </ul>
+</footer>
 
 </body>
 </html>
