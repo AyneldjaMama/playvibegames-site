@@ -322,6 +322,7 @@
 
   .game-card.dodge { --card-accent: #47d4ff; }
   .game-card.split { --card-accent: #ff4747; }
+  .game-card.orbit { --card-accent: #7b2fff; }
 
   .game-card::before {
     content: '';
@@ -582,6 +583,7 @@
 
   .threat-game.dodge { color: rgba(71,212,255,0.6); }
   .threat-game.split { color: rgba(255,71,71,0.6); }
+  .threat-game.orbit { color: rgba(123,47,255,0.6); }
 
   /* STUDIO */
   .studio-section { background: var(--surface); }
@@ -822,7 +824,7 @@
   <div class="hero-bottom fade-up">
     <div class="hero-stats">
       <div class="stat">
-        <div class="stat-num">2</div>
+        <div class="stat-num">3</div>
         <div class="stat-label">Games</div>
       </div>
       <div class="stat">
@@ -886,6 +888,29 @@
         <div class="game-mechanic">
           <div class="mechanic-input">◈ Tap to Shift</div>
           <div class="mechanic-desc">One tap switches which side is exposed. Protect both or die trying.</div>
+        </div>
+        <div class="game-footer">
+          <a href="#" class="game-link">
+            <svg class="play-store-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M3.609 1.814L13.792 12 3.61 22.186a.996.996 0 0 1-.61-.92V2.734a1 1 0 0 1 .609-.92zm10.89 10.893l2.302 2.302-10.937 6.333 8.635-8.635zm3.199-3.199l2.302 2.302a1 1 0 0 1 0 1.38l-2.302 2.302L15.09 12l2.608-2.492zM5.864 3.458L16.8 9.79l-2.302 2.302-8.634-8.634z"/></svg>
+            Coming Soon ↗
+          </a>
+          <span class="game-badge">Free · No pay-to-win</span>
+        </div>
+      </div>
+
+      <!-- ORBIT.IO -->
+      <div class="game-card orbit">
+        <div class="game-status"><span class="pulse"></span> Coming Soon on Google Play</div>
+        <div class="game-preview">
+          <img src="gameplay-orbit.gif" alt="ORBIT.IO gameplay — tap to reverse your orbit and dodge threats">
+        </div>
+        <span class="game-icon">◎</span>
+        <div class="game-title">ORBIT.IO</div>
+        <div class="game-tagline">Reverse to Survive</div>
+        <p class="game-desc">Your shape orbits a center point. Threats converge from every direction toward your path. Tap to reverse — dodge what's ahead, but watch what's behind. The longer you survive, the faster you orbit.</p>
+        <div class="game-mechanic">
+          <div class="mechanic-input">◎ Tap to Reverse</div>
+          <div class="mechanic-desc">One tap reverses orbit direction. That's it. Time it or die.</div>
         </div>
         <div class="game-footer">
           <a href="#" class="game-link">
@@ -969,6 +994,26 @@
         <div class="threat-name">Ghosts</div>
         <div class="threat-game split">SPLIT.IO</div>
       </div>
+      <div class="threat-cell">
+        <span class="threat-symbol">↘</span>
+        <div class="threat-name">Inbounds</div>
+        <div class="threat-game orbit">ORBIT.IO</div>
+      </div>
+      <div class="threat-cell">
+        <span class="threat-symbol">●</span>
+        <div class="threat-name">Orbit Mines</div>
+        <div class="threat-game orbit">ORBIT.IO</div>
+      </div>
+      <div class="threat-cell">
+        <span class="threat-symbol">⟿</span>
+        <div class="threat-name">Chasers</div>
+        <div class="threat-game orbit">ORBIT.IO</div>
+      </div>
+      <div class="threat-cell">
+        <span class="threat-symbol">⊛</span>
+        <div class="threat-name">Pulse Rings</div>
+        <div class="threat-game orbit">ORBIT.IO</div>
+      </div>
     </div>
   </div>
 </section>
@@ -1009,7 +1054,7 @@
 
       <div class="studio-metrics">
         <div class="metric">
-          <div class="metric-val accent">2</div>
+          <div class="metric-val accent">3</div>
           <div class="metric-label">Games in Catalog</div>
         </div>
         <div class="metric">
@@ -1065,6 +1110,8 @@
     { label: 'One Life', note: 'No Second Chances' },
     { label: 'DODGE.IO', note: 'Drag to Move' },
     { label: 'SPLIT.IO', note: 'Tap to Shift' },
+    { label: 'ORBIT.IO', note: 'Coming Soon' },
+    { label: 'ORBIT.IO', note: 'Tap to Reverse' },
   ];
 
   const ticker = document.getElementById('tickerInner');
