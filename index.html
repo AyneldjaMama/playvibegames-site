@@ -304,6 +304,12 @@
     background: var(--border);
   }
 
+  .game-card:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+    max-width: 50%;
+    justify-self: center;
+  }
+
   .game-card {
     background: var(--bg);
     padding: 3rem;
@@ -788,6 +794,7 @@
     .stat-num { font-size: 1.5rem; }
     .section-inner { padding: 3rem 1rem; }
     .games-grid { grid-template-columns: 1fr; }
+    .game-card:last-child:nth-child(odd) { max-width: 100%; }
     .threats-header { grid-template-columns: 1fr; gap: 1.5rem; }
     .threats-grid { grid-template-columns: repeat(2, 1fr); }
     .studio-grid { grid-template-columns: 1fr; gap: 3rem; }
