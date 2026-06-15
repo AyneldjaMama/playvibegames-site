@@ -387,6 +387,9 @@
     opacity: 1;
   }
 
+  .preview-link { position: absolute; inset: 0; z-index: 2; cursor: pointer; }
+  .game-preview .play-web { z-index: 3; }
+
   .game-status {
     display: inline-flex;
     align-items: center;
@@ -867,6 +870,7 @@
       <div class="game-card dodge">
         <div class="game-status"><span class="pulse"></span> Coming Soon on Google Play</div>
         <div class="game-preview">
+        <a href="games/dodge/" class="preview-link" aria-label="Play DODGE.IO in browser"></a>
           <img src="gameplay-dodge.gif" alt="DODGE.IO gameplay — drag to dodge endless threats">
           <a href="games/dodge/" class="play-web">Play in Browser →</a>
         </div>
@@ -893,6 +897,7 @@
       <div class="game-card split">
         <div class="game-status"><span class="pulse"></span> Coming Soon on Google Play</div>
         <div class="game-preview">
+        <a href="games/split/" class="preview-link" aria-label="Play SPLIT.IO in browser"></a>
           <img src="gameplay-split.gif" alt="SPLIT.IO gameplay — tap to shift between two sides">
           <a href="games/split/" class="play-web">Play in Browser →</a>
         </div>
@@ -919,6 +924,7 @@
       <div class="game-card orbit">
         <div class="game-status"><span class="pulse"></span> Coming Soon on Google Play</div>
         <div class="game-preview">
+        <a href="games/orbit/" class="preview-link" aria-label="Play ORBIT.IO in browser"></a>
           <img src="gameplay-orbit.gif" alt="ORBIT.IO gameplay — tap to reverse your orbit and dodge threats">
           <a href="games/orbit/" class="play-web">Play in Browser →</a>
         </div>
