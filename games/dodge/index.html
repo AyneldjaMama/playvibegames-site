@@ -124,10 +124,10 @@ const joy = {
   end(){ this.active = false; this.pid = null; this.dx = 0; this.dy = 0; },
   draw(g){
     g.save();
-    g.globalAlpha = this.active ? 0.5 : 0.28;
+    g.globalAlpha = this.active ? 0.65 : 0.42;
     g.strokeStyle = COL.cyan; g.lineWidth = 2 * S;
     g.beginPath(); g.arc(this.bx, this.by, this.R, 0, TWO_PI); g.stroke();
-    g.globalAlpha = this.active ? 0.9 : 0.45;
+    g.globalAlpha = this.active ? 1 : 0.72;
     g.fillStyle = COL.cyan;
     g.beginPath(); g.arc(this.bx + this.dx, this.by + this.dy, this.knobR, 0, TWO_PI); g.fill();
     g.restore();
@@ -225,8 +225,8 @@ class Engine {
   patWave(){
     const vert = Math.random() < 0.5, spd = this.bulletSpeed()*0.9, n = 7;
     for (let i = 0; i < n; i++){
-      if (vert){ const x = (i+0.5)/n*W; this.addBullet(x, -16*S, Math.PI/2, spd, {type:'wave', color:COL.cyan}); }
-      else { const y = (i+0.5)/n*H*0.8; this.addBullet(-16*S, y, 0, spd, {type:'wave', color:COL.cyan}); }
+      if (vert){ const x = (i+0.5)/n*W; this.addBullet(x, -16*S, Math.PI/2, spd, {type:'wave', color:COL.yellow}); }
+      else { const y = (i+0.5)/n*H*0.8; this.addBullet(-16*S, y, 0, spd, {type:'wave', color:COL.yellow}); }
     }
   }
   patSpiral(){
