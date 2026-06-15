@@ -205,7 +205,7 @@ class Engine {
   addBullet(x, y, ang, spd, opts){
     const b = { x, y, vx:Math.cos(ang)*spd, vy:Math.sin(ang)*spd, r:(opts&&opts.r)||6*S,
       color:(opts&&opts.color)||COL.danger, grazed:false, type:(opts&&opts.type)||'normal' };
-    if (b.type === 'seeker'){ b.color = COL.purple; b.turn = 2.2; b.spd = spd; }
+    if (b.type === 'seeker'){ b.color = COL.danger; b.turn = 2.2; b.spd = spd; }
     if (b.type === 'wave'){ b.sx=x; b.sy=y; b.dx=Math.cos(ang); b.dy=Math.sin(ang); b.spd=spd;
       b.px=-b.dy; b.py=b.dx; b.amp=rand(28,55)*S; b.freq=rand(3,5); b.t=0; b.phase=rand(0,TWO_PI); }
     this.bullets.push(b);
@@ -220,13 +220,13 @@ class Engine {
     const cx = rand(W*0.2, W*0.8), cy = rand(H*0.15, H*0.5);
     const n = this.time < 45 ? 10 : 16, spd = this.bulletSpeed()*0.85, off = Math.random()*TWO_PI;
     for (let i = 0; i < n; i++) this.addBullet(cx, cy, off + i/n*TWO_PI, spd);
-    this.particles.spark(cx, cy, COL.yellow);
+    this.particles.spark(cx, cy, COL.danger);
   }
   patWave(){
     const vert = Math.random() < 0.5, spd = this.bulletSpeed()*0.9, n = 7;
     for (let i = 0; i < n; i++){
-      if (vert){ const x = (i+0.5)/n*W; this.addBullet(x, -16*S, Math.PI/2, spd, {type:'wave', color:COL.yellow}); }
-      else { const y = (i+0.5)/n*H*0.8; this.addBullet(-16*S, y, 0, spd, {type:'wave', color:COL.yellow}); }
+      if (vert){ const x = (i+0.5)/n*W; this.addBullet(x, -16*S, Math.PI/2, spd, {type:'wave', color:COL.danger}); }
+      else { const y = (i+0.5)/n*H*0.8; this.addBullet(-16*S, y, 0, spd, {type:'wave', color:COL.danger}); }
     }
   }
   patSpiral(){
@@ -342,7 +342,7 @@ class Engine {
     for (const L of this.lasers){
       const telePhase = L.t <= L.tele;
       const a = telePhase ? 0.18 + 0.22*Math.abs(Math.sin(L.t*18)) : 0.85;
-      g.globalAlpha = a; g.fillStyle = telePhase ? COL.yellow : COL.danger;
+      g.globalAlpha = a; g.fillStyle = COL.danger;
       const w = telePhase ? 3*S : L.w;
       if (L.kind === 'v') g.fillRect(L.x - w/2, 0, w, H); else g.fillRect(0, L.y - w/2, W, w);
       g.globalAlpha = 1;
