@@ -61,7 +61,6 @@
       <div class="go-stat"><span class="go-stat-val" id="go-mult">×1</span><span class="go-stat-lbl">Best Combo</span></div>
     </div>
     <button class="btn btn-play" id="btn-again">▶ &nbsp;PLAY AGAIN</button>
-    <button class="btn btn-knob" id="btn-knob2">KNOB: RIGHT &nbsp;·&nbsp; TAP TO SWITCH</button>
   </div>
 </div>
 
@@ -389,16 +388,15 @@ resize();
 window.addEventListener('resize', resize);
 
 const menuEl = document.getElementById('menu'), hudEl = document.getElementById('hud'), goEl = document.getElementById('gameover');
-const btnKnob = document.getElementById('btn-knob'), btnKnob2 = document.getElementById('btn-knob2');
+const btnKnob = document.getElementById('btn-knob');
 document.getElementById('menu-best').textContent = Scores.getHigh();
 function refreshKnobBtns(){
   const label = 'KNOB: ' + (joy.side === 'left' ? 'LEFT' : 'RIGHT') + '  ·  TAP TO SWITCH';
-  btnKnob.textContent = label; btnKnob2.textContent = label;
+  btnKnob.textContent = label;
 }
 refreshKnobBtns();
 function toggleKnob(){ joy.setSide(joy.side === 'left' ? 'right' : 'left'); refreshKnobBtns(); }
 btnKnob.addEventListener('click', toggleKnob);
-btnKnob2.addEventListener('click', toggleKnob);
 
 function startGame(){
   if (!engine) engine = new Engine();
