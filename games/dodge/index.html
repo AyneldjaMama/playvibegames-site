@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>DODGE.IO – Survive Everything</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:100%; height:100%; overflow:hidden; background:#000; }
+  canvas { display:block; touch-action:none; }
+  #ui {
+    position:fixed; inset:0; pointer-events:none;
+    font-family:'Space Mono', monospace;
+    color:#fff;
+  }
+  /* MENU */
+  #menu {
+    position:absolute; inset:0;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    gap:0; pointer-events:all;
+  }
+  #menu .logo {
+    font-family:'Black Ops One', sans-serif;
+    font-size:clamp(3rem,12vw,6rem);
+    line-height:1;
+    margin-bottom:0.15em;
+    letter-spacing:-0.02em;
+  }
+  #menu .logo .green { color:#39ff14; text-shadow:0 0 30px #39ff14; }
+  #menu .logo .pink { color:#ff2d55; text-shadow:0 0 30px #ff2d55; }
+  #menu .tagline {
+    font-size:clamp(0.55rem,2vw,0.75rem);
+    color:rgba(255,255,255,0.4);
+    letter-spacing:0.18em;
+    text-transform:lowercase;
+    margin-bottom:3rem;
+  }
+  #menu .best {
+    font-size:0.65rem;
+    letter-spacing:0.2em;
+    color:rgba(255,255,255,0.35);
+    margin-bottom:2rem;
+    text-transform:uppercase;
+  }
+  #menu .best span { color:#ffd60a; font-size:0.9rem; }
+  .btn {
+    pointer-events:all; cursor:pointer;
+    font-family:'Black Ops One', sans-serif;
+    letter-spacing:0.1em;
+    border:none; outline:none;
+    display:flex; align-items:center; justify-content:center; gap:0.5rem;
+    transition:all 0.15s;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .btn-play {
+    background:#39ff14; color:#000;
+    font-size:1.1rem;
+    padding:1rem 3rem;
+    width:min(280px,72vw);
+    clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px));
+    margin-bottom:0.75rem;
+  }
+  .btn-play:hover { background:#fff; box-shadow:0 0 20px #39ff14; }
+  .btn-daily {
+    background:transparent; color:#00f5ff;
+    font-size:0.85rem;
+    padding:0.75rem 2rem;
+    width:min(280px,72vw);
+    border:1.5px solid rgba(0,245,255,0.4);
+    clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px));
+  }
+  .btn-daily:hover { border-color:#00f5ff; background:rgba(0,245,255,0.06); }
+  .threats-legend {
+    position:absolute; bottom:2rem; left:0; right:0;
+    display:flex; flex-wrap:wrap; justify-content:center;
+    gap:0.4rem 1rem;
+    padding:0 1rem;
+    pointer-events:none;
+  }
+  .threat-tag {
+    font-size:0.55rem;
+    letter-spacing:0.1em;
+    color:rgba(255,255,255,0.3);
+    display:flex; align-items:center; gap:0.3rem;
+    text-transform:uppercase;
+  }
+  .threat-dot { width:6px;height:6px;border-radius:50%; }
+
+  /* HUD */
+  #hud {
+    position:absolute; inset:0;
+    display:none; pointer-events:none;
+  }
+  #score-display {
+    position:absolute; top:0; left:50%; transform:translateX(-50%);
+    font-size:clamp(1.1rem,5vw,1.8rem);
+    font-weight:700;
+    padding-top:0.5rem;
+    color:rgba(255,255,255,0.92);
+    letter-spacing:0.05em;
+  }
+  #streak-display {
+    position:absolute; top:0.6rem; right:0.75rem;
+    font-size:0.7rem; color:#39ff14;
+    opacity:0; transition:opacity 0.3s;
+  }
+  #near-miss-display {
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) translateY(-30px);
+    font-size:clamp(0.8rem,3vw,1rem);
+    color:#39ff14; text-align:center;
+    opacity:0; transition:opacity 0.2s;
+    pointer-events:none;
+  }
+  #shield-icon {
+    position:absolute; top:0.5rem; left:0.75rem;
+    font-size:0.65rem; color:#7b2fff;
+    display:none;
+  }
+  #daily-badge {
+    position:absolute; top:0.5rem; left:50%; transform:translateX(-50%);
+    font-size:0.55rem; letter-spacing:0.15em; color:#00f5ff;
+    opacity:0.6; text-transform:uppercase;
+    display:none; padding-top:0.15rem;
+  }
+
+  /* GAME OVER */
+  #gameover {
+    position:absolute; inset:0;
+    display:none; flex-direction:column;
+    align-items:center; justify-content:center;
+    pointer-events:all; gap:0;
+  }
+  #gameover .go-label {
+    font-family:'Black Ops One', sans-serif;
+    font-size:clamp(2rem,8vw,3.5rem);
+    color:#ff2d55; text-shadow:0 0 30px rgba(255,45,85,0.5);
+    margin-bottom:0.3em;
+  }
+  #gameover .go-score {
+    font-size:clamp(2.5rem,10vw,5rem);
+    font-weight:700;
+    color:#fff;
+    line-height:1;
+    margin-bottom:0.1em;
+  }
+  #gameover .go-best {
+    font-size:0.7rem; color:rgba(255,255,255,0.4);
+    letter-spacing:0.2em; text-transform:uppercase;
+    margin-bottom:2rem;
+  }
+  #gameover .go-best span { color:#ffd60a; }
+  #gameover .go-stats {
+    display:flex; gap:2rem; margin-bottom:2.5rem;
+  }
+  #gameover .go-stat { text-align:center; }
+  #gameover .go-stat-val { font-size:1.2rem; font-weight:700; color:#00f5ff; display:block; }
+  #gameover .go-stat-lbl { font-size:0.55rem; letter-spacing:0.15em; color:rgba(255,255,255,0.3); text-transform:uppercase; }
+  #gameover .btn-play { margin-bottom:0.75rem; }
+  #gameover .go-daily-cta { font-size:0.6rem; color:rgba(0,245,255,0.5); letter-spacing:0.1em; margin-top:1rem; text-transform:uppercase; cursor:pointer; pointer-events:all; }
+  #gameover .go-daily-cta:hover { color:#00f5ff; }
+
+  /* LASER warning */
+  .laser-warn {
+    position:absolute;
+    background:rgba(255,45,85,0.12);
+    pointer-events:none;
+    transition:opacity 0.1s;
+  }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="ui">
+  <!-- MENU -->
+  <div id="menu">
+    <div class="logo"><span class="green">DODGE</span><span class="pink">.IO</span></div>
+    <div class="tagline">drag to move. dodge everything. survive.</div>
+    <div class="best">BEST &nbsp;<span id="menu-best">0</span></div>
+    <button class="btn btn-play" id="btn-play">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M3 18.5v-13A1.5 1.5 0 014.93 4.1l13 6.5a1.5 1.5 0 010 2.8l-13 6.5A1.5 1.5 0 013 18.5z"/></svg>
+      PLAY
+    </button>
+    <button class="btn btn-daily" id="btn-daily">📅 &nbsp;DAILY CHALLENGE</button>
+    <div class="threats-legend">
+      <span class="threat-tag"><span class="threat-dot" style="background:#ff2d55"></span>Bullets</span>
+      <span class="threat-tag"><span class="threat-dot" style="background:#ff2d55;box-shadow:0 0 4px #ff2d55"></span>Seekers</span>
+      <span class="threat-tag"><span class="threat-dot" style="background:#ffd60a"></span>Waves</span>
+      <span class="threat-tag"><span class="threat-dot" style="background:#ff6b00"></span>Bombers</span>
+      <span class="threat-tag"><span class="threat-dot" style="background:#ff2d55;opacity:0.7"></span>Lasers</span>
+      <span class="threat-tag"><span class="threat-dot" style="background:#cc44ff"></span>Spirals</span>
+      <span class="threat-tag"><span class="threat-dot" style="background:#00f5ff"></span>Splitters</span>
+      <span class="threat-tag"><span class="threat-dot" style="background:#ffd60a;border-radius:0"></span>Teleporters</span>
+    </div>
+  </div>
+
+  <!-- HUD -->
+  <div id="hud">
+    <div id="daily-badge">DAILY CHALLENGE</div>
+    <div id="score-display">0</div>
+    <div id="streak-display"></div>
+    <div id="near-miss-display"></div>
+    <div id="shield-icon">🛡 SHIELD</div>
+  </div>
+
+  <!-- GAME OVER -->
+  <div id="gameover">
+    <div class="go-label">GAME OVER</div>
+    <div class="go-score" id="go-score">0</div>
+    <div class="go-best">BEST &nbsp;<span id="go-best">0</span></div>
+    <div class="go-stats">
+      <div class="go-stat"><span class="go-stat-val" id="go-time">0s</span><span class="go-stat-lbl">Time</span></div>
+      <div class="go-stat"><span class="go-stat-val" id="go-misses">0</span><span class="go-stat-lbl">Near Misses</span></div>
+      <div class="go-stat"><span class="go-stat-val" id="go-dodged">0</span><span class="go-stat-lbl">Dodged</span></div>
+    </div>
+    <button class="btn btn-play" id="btn-again">▶ &nbsp;PLAY AGAIN</button>
+    <div class="go-daily-cta" id="go-daily">📅 &nbsp;TRY DAILY CHALLENGE</div>
+  </div>
+</div>
+
+<script>
+'use strict';
+// ─────────────────────────────────────────
+//  DODGE.IO  –  Web Version
+// ─────────────────────────────────────────
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+
+// ── Resize ──
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+resize();
+window.addEventListener('resize', resize);
+
+// ── Persistent storage ──
+const save = {
+  getBest()  { return parseInt(localStorage.getItem('dodge_best') || '0'); },
+  setBest(n) { localStorage.setItem('dodge_best', n); },
+  getDailyScore(key) { return parseInt(localStorage.getItem('dodge_daily_' + key) || '0'); },
+  setDailyScore(key, n) { localStorage.setItem('dodge_daily_' + key, n); },
+  hasPlayedToday(key) { return localStorage.getItem('dodge_daily_played_' + key) === '1'; },
+  markPlayedToday(key) { localStorage.setItem('dodge_daily_played_' + key, '1'); },
+};
+
+function dailyKey() {
+  const d = new Date();
+  return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+}
+
+// ── Seeded RNG (for daily challenge) ──
+function mulberry32(seed) {
+  return function() {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+// ── Game state ──
+let STATE = 'MENU';       // MENU | PLAYING | DEAD
+let isDailyMode = false;
+let dailySeed   = null;
+let rng         = Math.random;
+
+let score       = 0;
+let startTime   = 0;
+let elapsedSec  = 0;
+let nearMisses  = 0;
+let dodged      = 0;
+let streak      = 0;
+let streakTimer = 0;
+let hasShield   = false;
+let shieldUsed  = false;
+
+// Player
+const P = { x:0, y:0, tx:0, ty:0, vx:0, vy:0, prevX:0, prevY:0, r:6 };
+let pointerDown = false;
+
+// Threats
+let threats     = [];
+let spawnTimer  = 0;
+let spawnRate   = 90;      // frames between spawns (decreases over time)
+let waveTimer   = 0;
+let spiralTimer = 0;
+let laserTimer  = 0;
+let activeLasers = [];     // { axis:'h'|'v', pos, phase:'warn'|'fire', timer }
+let bombExplosions = [];   // particles from bomber
+
+let frameCount  = 0;
+let lastT       = 0;
+
+// Near miss / streak HUD timers
+let nmTimer     = 0;
+let nmText      = '';
+
+// ── DOM refs ──
+const menuEl   = document.getElementById('menu');
+const hudEl    = document.getElementById('hud');
+const goEl     = document.getElementById('gameover');
+const scoreEl  = document.getElementById('score-display');
+const streakEl = document.getElementById('streak-display');
+const nmEl     = document.getElementById('near-miss-display');
+const shieldEl = document.getElementById('shield-icon');
+const dailyBadge = document.getElementById('daily-badge');
+
+document.getElementById('btn-play').addEventListener('click',   () => startGame(false));
+document.getElementById('btn-daily').addEventListener('click',  () => startGame(true));
+document.getElementById('btn-again').addEventListener('click',  () => startGame(isDailyMode));
+document.getElementById('go-daily').addEventListener('click',   () => startGame(true));
+document.getElementById('menu-best').textContent = save.getBest();
+
+// ── Input ──
+function getPos(e) {
+  if (e.changedTouches) {
+    return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
+  }
+  return { x: e.clientX, y: e.clientY };
+}
+canvas.addEventListener('pointerdown', e => {
+  if (STATE !== 'PLAYING') return;
+  pointerDown = true;
+  const p = getPos(e);
+  P.tx = p.x; P.ty = p.y;
+  e.preventDefault();
+}, { passive: false });
+canvas.addEventListener('pointermove', e => {
+  if (!pointerDown || STATE !== 'PLAYING') return;
+  const p = getPos(e);
+  P.tx = p.x; P.ty = p.y;
+  e.preventDefault();
+}, { passive: false });
+canvas.addEventListener('pointerup',   () => { pointerDown = false; });
+canvas.addEventListener('pointercancel', () => { pointerDown = false; });
+
+// ── Start game ──
+function startGame(daily) {
+  isDailyMode = daily;
+  const key = dailyKey();
+
+  if (daily) {
+    // Use date as seed
+    const seed = parseInt(key);
+    rng = mulberry32(seed);
+    dailySeed = key;
+  } else {
+    rng = Math.random;
+    dailySeed = null;
+  }
+
+  score = 0; frameCount = 0; nearMisses = 0; dodged = 0;
+  streak = 0; streakTimer = 0; hasShield = false; shieldUsed = false;
+  threats = []; activeLasers = []; bombExplosions = [];
+  spawnTimer = 0; spawnRate = 90;
+  waveTimer = 200; spiralTimer = 300; laserTimer = 400;
+  P.x = canvas.width/2; P.y = canvas.height/2;
+  P.tx = P.x; P.ty = P.y; P.vx=0; P.vy=0;
+  P.prevX = P.x; P.prevY = P.y;
+  pointerDown = false;
+  startTime = Date.now();
+
+  menuEl.style.display = 'none';
+  goEl.style.display = 'none';
+  hudEl.style.display = 'block';
+  dailyBadge.style.display = daily ? 'block' : 'none';
+  shieldEl.style.display = 'none';
+  scoreEl.textContent = '0';
+  streakEl.style.opacity = '0';
+  nmEl.style.opacity = '0';
+
+  STATE = 'PLAYING';
+}
+
+function endGame() {
+  STATE = 'DEAD';
+  elapsedSec = Math.floor((Date.now() - startTime) / 1000);
+  const finalScore = Math.floor(score);
+
+  // Save best
+  const prev = save.getBest();
+  if (finalScore > prev) save.setBest(finalScore);
+  if (isDailyMode) {
+    save.setDailyScore(dailySeed, finalScore);
+    save.markPlayedToday(dailySeed);
+  }
+
+  // Update game over screen
+  document.getElementById('go-score').textContent = finalScore;
+  document.getElementById('go-best').textContent = Math.max(finalScore, save.getBest());
+  document.getElementById('go-time').textContent = elapsedSec + 's';
+  document.getElementById('go-misses').textContent = nearMisses;
+  document.getElementById('go-dodged').textContent = dodged;
+  document.getElementById('menu-best').textContent = save.getBest();
+
+  hudEl.style.display = 'none';
+  goEl.style.display = 'flex';
+
+  const goDaily = document.getElementById('go-daily');
+  goDaily.style.display = isDailyMode ? 'none' : 'block';
+}
+
+// ── Threat factory ──
+const COLORS = {
+  bullet:    '#ff2d55',
+  seeker:    '#ff2d55',
+  wave:      '#ffd60a',
+  bomber:    '#ff6b00',
+  laser:     '#ff2d55',
+  spiral:    '#cc44ff',
+  splitter:  '#00f5ff',
+  teleport:  '#ffd60a',
+};
+
+function edgeSpawn(targetX, targetY, spread=0.5) {
+  const side = Math.floor(rng() * 4);
+  let x, y;
+  if (side === 0) { x = rng()*canvas.width; y = -12; }
+  else if (side === 1) { x = canvas.width+12; y = rng()*canvas.height; }
+  else if (side === 2) { x = rng()*canvas.width; y = canvas.height+12; }
+  else { x = -12; y = rng()*canvas.height; }
+  const angle = Math.atan2(targetY-y, targetX-x) + (rng()-0.5)*spread;
+  return { x, y, angle };
+}
+
+function spawnBullet() {
+  const { x, y, angle } = edgeSpawn(P.x, P.y, 0.3);
+  const spd = 2.5 + rng()*1.5;
+  threats.push({ type:'bullet', x, y, vx:Math.cos(angle)*spd, vy:Math.sin(angle)*spd, r:3.5, color:COLORS.bullet });
+}
+
+function spawnSeeker() {
+  const { x, y } = edgeSpawn(P.x, P.y, 1.5);
+  threats.push({ type:'seeker', x, y, vx:0, vy:0, r:4, color:COLORS.seeker, spd: 1.2+rng()*0.5 });
+}
+
+function spawnWave() {
+  // Row of bullets across screen
+  const fromTop = rng() > 0.5;
+  const y = fromTop ? -12 : canvas.height+12;
+  const vy = fromTop ? 1.8+rng()*0.5 : -(1.8+rng()*0.5);
+  const count = 5 + Math.floor(rng()*4);
+  const gap = canvas.width / (count+1);
+  const offset = rng()*gap;
+  for (let i = 1; i <= count; i++) {
+    const gapPos = (rng() > 0.3) ? 0 : i; // random gap
+    if (gapPos === i) continue;
+    threats.push({ type:'wave', x:gap*i+offset, y, vx:(rng()-0.5)*0.3, vy, r:3, color:COLORS.wave });
+  }
+}
+
+function spawnBomber() {
+  const { x, y, angle } = edgeSpawn(P.x, P.y, 0.8);
+  const spd = 0.8 + rng()*0.4;
+  threats.push({ type:'bomber', x, y, vx:Math.cos(angle)*spd, vy:Math.sin(angle)*spd, r:6, color:COLORS.bomber, armed:false });
+}
+
+function spawnSpiral() {
+  // Ring of dots expanding outward from a point
+  const cx = canvas.width*0.2 + rng()*canvas.width*0.6;
+  const cy = canvas.height*0.2 + rng()*canvas.height*0.6;
+  const count = 8 + Math.floor(rng()*6);
+  const spd = 1.5 + rng()*0.8;
+  for (let i = 0; i < count; i++) {
+    const a = (i/count)*Math.PI*2 + rng()*0.2;
+    threats.push({ type:'spiral', x:cx, y:cy, vx:Math.cos(a)*spd, vy:Math.sin(a)*spd, r:3, color:COLORS.spiral });
+  }
+}
+
+function spawnSplitter() {
+  const { x, y, angle } = edgeSpawn(P.x, P.y, 0.3);
+  const spd = 1.8 + rng()*0.8;
+  threats.push({ type:'splitter', x, y, vx:Math.cos(angle)*spd, vy:Math.sin(angle)*spd, r:5.5, color:COLORS.splitter, split:false });
+}
+
+function spawnTeleporter() {
+  // Appears at random position on screen after blink-in
+  const margin = 40;
+  const x = margin + rng()*(canvas.width-margin*2);
+  const y = margin + rng()*(canvas.height-margin*2);
+  threats.push({ type:'teleport', x, y, vx:0, vy:0, r:4, color:COLORS.teleport, blinkTimer:60, visible:false, lived:0 });
+}
+
+function spawnLaser() {
+  const horiz = rng() > 0.5;
+  const pos = horiz
+    ? canvas.height*0.1 + rng()*canvas.height*0.8
+    : canvas.width*0.1  + rng()*canvas.width*0.8;
+  activeLasers.push({ axis: horiz?'h':'v', pos, phase:'warn', timer:90 });
+}
+
+// ── Difficulty ──
+function getDifficulty() {
+  const t = elapsedSec;
+  if (t < 15)  return { rate:90, maxThreats:8 };
+  if (t < 45)  return { rate:65, maxThreats:14 };
+  if (t < 90)  return { rate:45, maxThreats:20 };
+  if (t < 180) return { rate:30, maxThreats:28 };
+  return               { rate:22, maxThreats:36 };
+}
+
+// ── Main update ──
+function update(dt) {
+  elapsedSec = (Date.now() - startTime) / 1000;
+  frameCount++;
+  const diff = getDifficulty();
+
+  // Score: ~1pt/sec base — near miss streaks are the real driver (matches Android)
+  score += dt / 60;
+  scoreEl.textContent = Math.floor(score);
+
+  // Player movement — follows pointer
+  if (pointerDown) {
+    const dx = P.tx - P.x, dy = P.ty - P.y;
+    const dist = Math.hypot(dx, dy);
+    const maxSpd = 8;
+    if (dist > 1) {
+      const spd = Math.min(maxSpd, dist * 0.25);
+      P.prevX = P.x; P.prevY = P.y;
+      P.x += (dx/dist)*spd*dt;
+      P.y += (dy/dist)*spd*dt;
+    }
+  } else {
+    P.prevX = P.x; P.prevY = P.y;
+  }
+  P.x = Math.max(P.r+2, Math.min(canvas.width-P.r-2, P.x));
+  P.y = Math.max(P.r+2, Math.min(canvas.height-P.r-2, P.y));
+
+  // Spawn threats
+  spawnTimer -= dt;
+  if (spawnTimer <= 0 && threats.length < diff.maxThreats) {
+    spawnTimer = diff.rate * (0.8 + rng()*0.4);
+    // Weight: bullets most common
+    const r = rng();
+    if (r < 0.30) spawnBullet();
+    else if (r < 0.48) spawnSeeker();
+    else if (r < 0.58) spawnSplitter();
+    else if (r < 0.68) spawnBomber();
+    else if (r < 0.76) spawnTeleporter();
+    else spawnBullet(); // fallback more bullets
+  }
+
+  // Wave spawn
+  waveTimer -= dt;
+  if (waveTimer <= 0 && elapsedSec > 10) {
+    waveTimer = 300 + rng()*150;
+    spawnWave();
+  }
+
+  // Spiral spawn
+  spiralTimer -= dt;
+  if (spiralTimer <= 0 && elapsedSec > 25) {
+    spiralTimer = 400 + rng()*200;
+    spawnSpiral();
+  }
+
+  // Laser spawn
+  laserTimer -= dt;
+  if (laserTimer <= 0 && elapsedSec > 20) {
+    laserTimer = 350 + rng()*200;
+    spawnLaser();
+  }
+
+  // Streak timer
+  if (streakTimer > 0) {
+    streakTimer -= dt;
+    if (streakTimer <= 0) { streak = 0; streakEl.style.opacity='0'; }
+  }
+
+  // Near miss text timer
+  if (nmTimer > 0) {
+    nmTimer -= dt;
+    nmEl.style.opacity = Math.min(1, nmTimer/20).toString();
+    if (nmTimer <= 0) nmEl.style.opacity='0';
+  }
+
+  // ── Update threats ──
+  for (let i = threats.length-1; i >= 0; i--) {
+    const th = threats[i];
+    const dist = Math.hypot(th.x - P.x, th.y - P.y);
+
+    // Seeker steering
+    if (th.type === 'seeker') {
+      const a = Math.atan2(P.y-th.y, P.x-th.x);
+      th.vx += Math.cos(a)*0.06*dt; th.vy += Math.sin(a)*0.06*dt;
+      const s = Math.hypot(th.vx, th.vy);
+      if (s > th.spd) { th.vx/=s/th.spd; th.vy/=s/th.spd; }
+    }
+
+    // Teleporter blink
+    if (th.type === 'teleport') {
+      th.blinkTimer -= dt;
+      th.lived += dt;
+      if (th.blinkTimer <= 0) {
+        th.visible = !th.visible;
+        th.blinkTimer = th.visible ? 25+rng()*20 : 12+rng()*10;
+      }
+      // Teleport to new spot periodically
+      if (th.lived > 120 + rng()*60) {
+        const margin=40;
+        th.x = margin + rng()*(canvas.width-margin*2);
+        th.y = margin + rng()*(canvas.height-margin*2);
+        th.lived = 0; th.visible = false; th.blinkTimer = 30;
+      }
+    }
+
+    // Bomber — explode when close
+    if (th.type === 'bomber' && dist < 60 && !th.armed) { th.armed = true; }
+    if (th.type === 'bomber' && th.armed) {
+      // Flash and explode
+      th.r += 0.3*dt;
+      if (th.r > 16) {
+        // Explode into shrapnel
+        for (let j=0;j<6;j++) {
+          const a=(j/6)*Math.PI*2+rng()*0.3;
+          const spd=2+rng()*1.5;
+          threats.push({ type:'bullet', x:th.x, y:th.y, vx:Math.cos(a)*spd, vy:Math.sin(a)*spd, r:3, color:'#ff6b00' });
+        }
+        threats.splice(i,1); continue;
+      }
+    }
+
+    // Splitter — when close, split
+    if (th.type === 'splitter' && !th.split && dist < 50) {
+      th.split = true;
+      for (let j=0;j<2;j++) {
+        const a = Math.atan2(P.y-th.y, P.x-th.x) + (j===0?0.5:-0.5);
+        const spd = Math.hypot(th.vx,th.vy)*0.9;
+        threats.push({ type:'bullet', x:th.x, y:th.y, vx:Math.cos(a)*spd, vy:Math.sin(a)*spd, r:3, color:COLORS.splitter });
+      }
+      threats.splice(i,1); continue;
+    }
+
+    // Move
+    if (th.type !== 'teleport') {
+      th.x += th.vx*dt; th.y += th.vy*dt;
+    }
+
+    // Off-screen cull
+    if (th.type !== 'teleport') {
+      const pad = 30;
+      if (th.x<-pad||th.x>canvas.width+pad||th.y<-pad||th.y>canvas.height+pad) {
+        threats.splice(i,1); dodged++; continue;
+      }
+    }
+
+    // Teleporter off-screen cull
+    if (th.type === 'teleport' && th.lived > 300) {
+      threats.splice(i,1); continue;
+    }
+
+    // Near miss detection — once per threat pass, not per frame
+    const NEAR_OUTER = P.r + 22;
+    const NEAR_INNER = P.r + th.r + 1;
+    const inZone = dist > NEAR_INNER && dist < NEAR_OUTER;
+    if (inZone && !th.nearMissed) {
+      th.nearMissed = true;  // flag so it only counts once
+      nearMisses++;
+      streak++;
+      streakTimer = 90;
+      score += 5 * streak;
+      nmText = `NEAR MISS ×${nearMisses}`;
+      nmTimer = 50;
+      nmEl.textContent = nmText;
+      nmEl.style.opacity = '1';
+      if (streak >= 2) {
+        streakEl.textContent = `STREAK ×${streak}`;
+        streakEl.style.opacity = '1';
+      }
+    }
+    // Reset flag once threat leaves zone so it could theoretically re-trigger
+    if (!inZone && th.nearMissed) th.nearMissed = false;
+
+    // Hit detection
+    const hit = dist < P.r + th.r - 1;
+    const teleportHit = th.type==='teleport' && th.visible && hit;
+    const normalHit = th.type !== 'teleport' && hit;
+
+    if (normalHit || teleportHit) {
+      if (hasShield && !shieldUsed) {
+        shieldUsed = true; hasShield = false;
+        shieldEl.style.display = 'none';
+        threats.splice(i,1); continue;
+      }
+      endGame(); return;
+    }
+  }
+
+  // ── Lasers ──
+  for (let i = activeLasers.length-1; i >= 0; i--) {
+    const l = activeLasers[i];
+    l.timer -= dt;
+    if (l.phase === 'warn' && l.timer <= 0) {
+      l.phase = 'fire'; l.timer = 18; // brief flash
+      // Check hit
+      const onBeam = l.axis==='h'
+        ? Math.abs(P.y - l.pos) < P.r+3
+        : Math.abs(P.x - l.pos) < P.r+3;
+      if (onBeam) {
+        if (hasShield && !shieldUsed) { shieldUsed=true; hasShield=false; shieldEl.style.display='none'; }
+        else { endGame(); return; }
+      }
+    }
+    if (l.phase === 'fire' && l.timer <= 0) {
+      activeLasers.splice(i,1);
+    }
+  }
+}
+
+// ── Draw ──
+function draw() {
+  const w = canvas.width, h = canvas.height;
+
+  // Background
+  ctx.fillStyle = '#0a0f18';
+  ctx.fillRect(0,0,w,h);
+
+  // Grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+  ctx.lineWidth = 1;
+  const gs = Math.round(w/7);
+  const gsh = Math.round(h/12);
+  for (let x=0; x<w; x+=gs) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke(); }
+  for (let y=0; y<h; y+=gsh) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); }
+
+  if (STATE !== 'PLAYING') return;
+
+  // ── Draw lasers ──
+  activeLasers.forEach(l => {
+    if (l.phase === 'warn') {
+      const alpha = 0.06 + 0.1*(1-l.timer/90)*Math.sin(Date.now()*0.015);
+      ctx.fillStyle = `rgba(255,45,85,${alpha})`;
+      if (l.axis === 'h') ctx.fillRect(0, l.pos-12, w, 24);
+      else ctx.fillRect(l.pos-12, 0, 24, h);
+      // Crosshair lines
+      ctx.strokeStyle = `rgba(255,45,85,${0.3 + 0.2*(1-l.timer/90)})`;
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4,4]);
+      if (l.axis === 'h') { ctx.beginPath(); ctx.moveTo(0,l.pos); ctx.lineTo(w,l.pos); ctx.stroke(); }
+      else { ctx.beginPath(); ctx.moveTo(l.pos,0); ctx.lineTo(l.pos,h); ctx.stroke(); }
+      ctx.setLineDash([]);
+    } else {
+      // Fire
+      const alpha = l.timer/18;
+      ctx.strokeStyle = `rgba(255,45,85,${alpha})`;
+      ctx.lineWidth = 3 + (1-alpha)*6;
+      ctx.shadowColor='#ff2d55'; ctx.shadowBlur=20;
+      ctx.beginPath();
+      if (l.axis==='h') { ctx.moveTo(0,l.pos); ctx.lineTo(w,l.pos); }
+      else { ctx.moveTo(l.pos,0); ctx.lineTo(l.pos,h); }
+      ctx.stroke(); ctx.shadowBlur=0;
+      // Bright core
+      ctx.strokeStyle = `rgba(255,200,200,${alpha*0.8})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      if (l.axis==='h') { ctx.moveTo(0,l.pos); ctx.lineTo(w,l.pos); }
+      else { ctx.moveTo(l.pos,0); ctx.lineTo(l.pos,h); }
+      ctx.stroke();
+    }
+  });
+
+  // ── Draw threats ──
+  threats.forEach(th => {
+    if (th.type === 'teleport' && !th.visible) return;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(th.x, th.y, Math.max(0.5,th.r), 0, Math.PI*2);
+    ctx.fillStyle = th.color;
+    ctx.shadowColor = th.color;
+    ctx.shadowBlur = th.type==='bomber' ? 14 : 7;
+    ctx.fill();
+
+    // Bomber pulse ring
+    if (th.type==='bomber' && th.armed) {
+      ctx.beginPath(); ctx.arc(th.x, th.y, th.r+4, 0, Math.PI*2);
+      ctx.strokeStyle = `rgba(255,107,0,0.5)`; ctx.lineWidth=1.5; ctx.stroke();
+    }
+    // Teleporter flicker ring
+    if (th.type==='teleport') {
+      ctx.beginPath(); ctx.arc(th.x,th.y,th.r+5,0,Math.PI*2);
+      ctx.strokeStyle='rgba(255,214,10,0.4)'; ctx.lineWidth=1; ctx.stroke();
+    }
+    ctx.shadowBlur=0;
+    ctx.restore();
+  });
+
+  // ── Player trail ──
+  const dx = P.x - P.prevX, dy = P.y - P.prevY;
+  const moving = Math.hypot(dx,dy) > 0.3;
+  if (moving && pointerDown) {
+    const moveAngle = Math.atan2(dy, dx);
+    for (let i=8; i>=1; i--) {
+      const frac = i/8;
+      const tx = P.x - Math.cos(moveAngle)*frac*14;
+      const ty = P.y - Math.sin(moveAngle)*frac*14;
+      const tr = Math.max(0.2, P.r*(1-frac*0.8));
+      ctx.beginPath(); ctx.arc(tx, ty, tr, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(57,255,20,${(1-frac)*0.45})`; ctx.fill();
+    }
+  }
+
+  // ── Player ──
+  ctx.beginPath(); ctx.arc(P.x, P.y, P.r, 0, Math.PI*2);
+  ctx.fillStyle = '#39ff14';
+  ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 18;
+  ctx.fill(); ctx.shadowBlur = 0;
+
+  // Touch target indicator (subtle)
+  if (pointerDown) {
+    const tdist = Math.hypot(P.tx-P.x, P.ty-P.y);
+    if (tdist > 20) {
+      ctx.beginPath(); ctx.arc(P.tx, P.ty, 8, 0, Math.PI*2);
+      ctx.strokeStyle='rgba(57,255,20,0.2)'; ctx.lineWidth=1.5; ctx.stroke();
+    }
+  }
+}
+
+// ── Game loop ──
+function loop(t) {
+  const dt = lastT ? Math.min((t-lastT)/16.667, 3) : 1;
+  lastT = t;
+
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  draw(); // always draw background
+  if (STATE === 'PLAYING') update(dt);
+
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

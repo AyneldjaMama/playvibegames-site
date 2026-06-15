@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>SPLIT.IO – Two Sides. One Tap.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:100%; height:100%; overflow:hidden; background:#030507; }
+  canvas { display:block; touch-action:none; }
+  #ui { position:fixed; inset:0; pointer-events:none; font-family:'Space Mono', monospace; color:#fff; }
+  /* MENU */
+  #menu {
+    position:absolute; inset:0; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:0; pointer-events:all;
+  }
+  #menu .logo {
+    font-family:'Black Ops One', sans-serif;
+    font-size:clamp(3rem,13vw,6rem); line-height:1; margin-bottom:0.15em; letter-spacing:-0.02em;
+    color:#00f5ff; text-shadow:0 0 30px rgba(0,245,255,0.6);
+  }
+  #menu .logo .dim { color:#3a4a55; text-shadow:none; }
+  #menu .tagline {
+    font-size:clamp(0.55rem,2vw,0.75rem); color:rgba(255,255,255,0.4);
+    letter-spacing:0.18em; text-transform:lowercase; margin-bottom:3rem; text-align:center;
+  }
+  #menu .best { font-size:0.65rem; letter-spacing:0.2em; color:rgba(255,255,255,0.35); margin-bottom:2rem; text-transform:uppercase; }
+  #menu .best span { color:#ffd60a; font-size:0.9rem; }
+  .btn {
+    pointer-events:all; cursor:pointer; font-family:'Black Ops One', sans-serif;
+    letter-spacing:0.1em; border:none; outline:none;
+    display:flex; align-items:center; justify-content:center; gap:0.5rem;
+    transition:all 0.15s; -webkit-tap-highlight-color:transparent;
+  }
+  .btn-play {
+    background:#00f5ff; color:#000; font-size:1.1rem; padding:1rem 3rem; width:min(280px,72vw);
+    clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px));
+    margin-bottom:0.75rem;
+  }
+  .btn-play:hover { background:#fff; box-shadow:0 0 20px #00f5ff; }
+  .btn-daily {
+    background:transparent; color:#00f5ff; font-size:0.85rem; padding:0.75rem 2rem; width:min(280px,72vw);
+    border:1.5px solid rgba(0,245,255,0.4);
+    clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px));
+  }
+  .btn-daily:hover { border-color:#00f5ff; background:rgba(0,245,255,0.06); }
+  .btn-daily.played { opacity:0.4; }
+  #menu .howto {
+    position:absolute; bottom:2rem; left:0; right:0; text-align:center; padding:0 1.5rem;
+    font-size:0.6rem; letter-spacing:0.08em; color:rgba(255,255,255,0.3); line-height:1.8; text-transform:uppercase;
+  }
+  #menu .howto b { color:#00f5ff; }
+  /* HUD */
+  #hud { position:absolute; inset:0; display:none; pointer-events:none; }
+  #daily-badge {
+    position:absolute; top:0.5rem; left:50%; transform:translateX(-50%);
+    font-size:0.55rem; letter-spacing:0.15em; color:#00f5ff; opacity:0.6; text-transform:uppercase; display:none; padding-top:0.15rem;
+  }
+  /* GAME OVER */
+  #gameover {
+    position:absolute; inset:0; display:none; flex-direction:column;
+    align-items:center; justify-content:center; pointer-events:all; gap:0;
+  }
+  #gameover .go-label { font-family:'Black Ops One', sans-serif; font-size:clamp(2rem,8vw,3.5rem); color:#ff2d55; text-shadow:0 0 30px rgba(255,45,85,0.5); margin-bottom:0.3em; }
+  #gameover .go-score { font-size:clamp(2.5rem,10vw,5rem); font-weight:700; color:#fff; line-height:1; margin-bottom:0.1em; }
+  #gameover .go-best { font-size:0.7rem; color:rgba(255,255,255,0.4); letter-spacing:0.2em; text-transform:uppercase; margin-bottom:2rem; }
+  #gameover .go-best span { color:#ffd60a; }
+  #gameover .go-stats { display:flex; gap:1.75rem; margin-bottom:2.5rem; flex-wrap:wrap; justify-content:center; max-width:90vw; }
+  #gameover .go-stat { text-align:center; }
+  #gameover .go-stat-val { font-size:1.2rem; font-weight:700; color:#00f5ff; display:block; }
+  #gameover .go-stat-lbl { font-size:0.55rem; letter-spacing:0.12em; color:rgba(255,255,255,0.3); text-transform:uppercase; }
+  #gameover .go-daily-cta { font-size:0.6rem; color:rgba(0,245,255,0.5); letter-spacing:0.1em; margin-top:1rem; text-transform:uppercase; cursor:pointer; pointer-events:all; }
+  #gameover .go-daily-cta:hover { color:#00f5ff; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="ui">
+  <div id="menu">
+    <div class="logo">SPLIT<span class="dim">.IO</span></div>
+    <div class="tagline">two sides. one tap. stay in the dark.</div>
+    <div class="best">BEST &nbsp;<span id="menu-best">0</span></div>
+    <button class="btn btn-play" id="btn-play">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M3 18.5v-13A1.5 1.5 0 014.93 4.1l13 6.5a1.5 1.5 0 010 2.8l-13 6.5A1.5 1.5 0 013 18.5z"/></svg>
+      PLAY
+    </button>
+    <button class="btn btn-daily" id="btn-daily">📅 &nbsp;DAILY CHALLENGE</button>
+    <div class="howto">tap anywhere to <b>shift</b> the exposed side &middot; the <b>bright</b> side is vulnerable &middot; keep danger on the <b>dim</b> side</div>
+  </div>
+  <div id="hud"><div id="daily-badge">DAILY CHALLENGE · +SHIELD</div></div>
+  <div id="gameover">
+    <div class="go-label">GAME OVER</div>
+    <div class="go-score" id="go-score">0</div>
+    <div class="go-best">BEST &nbsp;<span id="go-best">0</span></div>
+    <div class="go-stats">
+      <div class="go-stat"><span class="go-stat-val" id="go-time">0s</span><span class="go-stat-lbl">Time</span></div>
+      <div class="go-stat"><span class="go-stat-val" id="go-dodged">0</span><span class="go-stat-lbl">Dodged</span></div>
+      <div class="go-stat"><span class="go-stat-val" id="go-close">0</span><span class="go-stat-lbl">Close Calls</span></div>
+    </div>
+    <button class="btn btn-play" id="btn-again">▶ &nbsp;PLAY AGAIN</button>
+    <div class="go-daily-cta" id="go-daily">📅 &nbsp;TRY DAILY CHALLENGE</div>
+  </div>
+</div>
+
+<script>
+'use strict';
+// ════════════════════════════════════════════════════════════
+//  SPLIT.IO — Web port (faithful to the Kotlin/Android source)
+//  Screen is split in two. One side is BRIGHT (exposed/vulnerable),
+//  the other is DIM (protected). Tap to SHIFT which side is exposed.
+//  Threats home toward each side's dot — flip to keep danger on the dim side.
+// ════════════════════════════════════════════════════════════
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+const TWO_PI = Math.PI * 2;
+const COL = { bg:'#030507', cyan:'#00f5ff', red:'#ff2d55', yellow:'#ffd60a', purple:'#7b2fff', purpleLt:'#d4bbff', white:'#ffffff' };
+const LEFT = 0, RIGHT = 1;
+
+// Layout — recomputed on resize
+let W = 0, H = 0, S = 1, PR = 18;
+function resize() {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth; H = window.innerHeight;
+  canvas.width = Math.floor(W * dpr); canvas.height = Math.floor(H * dpr);
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  S = Math.max(0.7, Math.min(1.5, Math.min(W / 2, H) / 430));
+  PR = 18 * S;
+  if (engine) engine.layout();
+}
+
+// Seeded RNG (mulberry32) for the daily challenge
+function mulberry32(seed) {
+  let s = seed >>> 0;
+  return function () {
+    s |= 0; s = s + 0x6D2B79F5 | 0;
+    let t = Math.imul(s ^ s >>> 15, 1 | s);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function dayOfYear(d){ const s = new Date(d.getFullYear(),0,0); return Math.floor((d - s) / 86400000); }
+const Daily = {
+  seed(){ const d = new Date(); return parseInt(`${d.getFullYear()}${dayOfYear(d)}`); },
+  key(){ const d = new Date(); return `${d.getFullYear()}${dayOfYear(d)}`; },
+};
+const Scores = {
+  getHigh(){ return parseInt(localStorage.getItem('split_high_score') || '0'); },
+  saveHigh(s){ if (s > this.getHigh()) localStorage.setItem('split_high_score', s); },
+  saveDaily(s){ const k = Daily.key(); localStorage.setItem('split_daily_score_' + k, s); localStorage.setItem('split_daily_played_' + k, '1'); },
+  hasPlayedToday(){ return localStorage.getItem('split_daily_played_' + Daily.key()) === '1'; },
+};
+
+// ════════════════════════════════════════════════════════════  ParticleSystem
+class ParticleSystem {
+  constructor(rng){ this.list = []; this.rng = rng || Math.random; }
+  spawnShatter(x, y, color, count = 8) {
+    for (let i = 0; i < count; i++) {
+      const a = (i / count) * TWO_PI + this.rng() * 0.5;
+      const sp = (2 + this.rng() * 4) * S;
+      const life = 600 + this.rng() * 400;
+      this.list.push({ x, y, vx: Math.cos(a)*sp, vy: Math.sin(a)*sp, radius: (3 + this.rng()*5)*S, alpha: 255, color, life, maxLife: life });
+    }
+  }
+  spawnShieldBreak(x, y) {
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * TWO_PI;
+      const sp = (1.5 + this.rng() * 3) * S;
+      const life = 400 + this.rng() * 200;
+      this.list.push({ x, y, vx: Math.cos(a)*sp, vy: Math.sin(a)*sp, radius: (2 + this.rng()*3)*S, alpha: 200, color: COL.purple, life, maxLife: life });
+    }
+  }
+  spawnCloseCall(x, y) {
+    for (let i = 0; i < 4; i++) {
+      const a = this.rng() * TWO_PI;
+      const sp = (1 + this.rng() * 2) * S;
+      this.list.push({ x, y, vx: Math.cos(a)*sp, vy: Math.sin(a)*sp, radius: 2*S, alpha: 200, color: COL.white, life: 300, maxLife: 300 });
+    }
+  }
+  update(dt) {
+    for (let i = this.list.length - 1; i >= 0; i--) {
+      const p = this.list[i];
+      p.x += p.vx * (dt / 16); p.y += p.vy * (dt / 16);
+      p.life -= dt; p.alpha = (p.life / p.maxLife) * 255; p.radius *= 0.995;
+      p.vx *= 0.97; p.vy *= 0.97;
+      if (p.life <= 0) this.list.splice(i, 1);
+    }
+  }
+  draw(g) {
+    for (const p of this.list) {
+      g.globalAlpha = Math.max(0, Math.min(1, p.alpha / 255));
+      g.fillStyle = p.color;
+      g.beginPath(); g.arc(p.x, p.y, Math.max(0.4, p.radius), 0, TWO_PI); g.fill();
+    }
+    g.globalAlpha = 1;
+  }
+}
+
+// ════════════════════════════════════════════════════════════  PlayerShape
+class PlayerShape {
+  constructor(x, y){ this.x = x; this.y = y; this.active = false; this.shielded = false;
+    this.glowR = 0; this.glowA = 0; this.pulse = 0; this.shieldPulse = 0; }
+  update(dt) {
+    this.pulse += dt * 0.003; if (this.pulse > TWO_PI) this.pulse -= TWO_PI;
+    if (this.active) {
+      this.glowR += (PR * 2.5 - this.glowR) * 0.1 * (dt / 16);
+      this.glowA += (180 - this.glowA) * 0.1 * (dt / 16);
+    } else {
+      this.glowR += (0 - this.glowR) * 0.1 * (dt / 16);
+      this.glowA += (0 - this.glowA) * 0.1 * (dt / 16);
+    }
+    if (this.shielded) { this.shieldPulse += dt * 0.004; if (this.shieldPulse > TWO_PI) this.shieldPulse -= TWO_PI; }
+  }
+  draw(g) {
+    const dotColor = this.shielded ? COL.purple : COL.cyan;
+    // Outer glow (active)
+    if (this.glowA > 5) {
+      g.globalAlpha = Math.min(80, this.glowA * 0.3) / 255; g.fillStyle = dotColor;
+      g.beginPath(); g.arc(this.x, this.y, Math.max(0.5, this.glowR), 0, TWO_PI); g.fill();
+    }
+    // Pulse ring (active)
+    if (this.active) {
+      const mag = Math.sin(this.pulse) * 0.5 + 0.5;
+      g.globalAlpha = (40 * mag) / 255; g.strokeStyle = dotColor; g.lineWidth = 2;
+      g.beginPath(); g.arc(this.x, this.y, PR + 8*S + mag * 12*S, 0, TWO_PI); g.stroke();
+    }
+    // Shield ring
+    if (this.shielded) {
+      const mag = Math.sin(this.shieldPulse) * 0.3 + 0.7;
+      g.globalAlpha = (150 * mag) / 255; g.strokeStyle = COL.purple; g.lineWidth = 3;
+      g.beginPath(); g.arc(this.x, this.y, PR + 6*S, 0, TWO_PI); g.stroke();
+    }
+    // Body
+    g.globalAlpha = this.active ? 1 : 100/255; g.fillStyle = dotColor;
+    g.beginPath(); g.arc(this.x, this.y, PR, 0, TWO_PI); g.fill();
+    // Inner core (active)
+    if (this.active) {
+      g.globalAlpha = 200/255; g.fillStyle = this.shielded ? COL.purpleLt : COL.white;
+      g.beginPath(); g.arc(this.x, this.y, PR * 0.4, 0, TWO_PI); g.fill();
+    }
+    g.globalAlpha = 1;
+  }
+}
+
+// ════════════════════════════════════════════════════════════  Threat
+const TT = { DART:'DART', DRIFTER:'DRIFTER', PULSE:'PULSE', TRACKER:'TRACKER', BURST:'BURST', GHOST:'GHOST' };
+
+class Threat {
+  constructor(o){
+    this.x = o.x; this.y = o.y; this.vx = o.vx || 0; this.vy = o.vy || 0;
+    this.type = o.type; this.side = o.side; this.radius = o.radius || 10*S;
+    this.pulseRadius = 0; this.visible = true; this.ghostTimer = 0; this.ghostCycle = 800;
+    this.hasBurst = false; this.trail = [];
+  }
+  update(dt, tx, ty, speedMult) {
+    const f = dt / 16;
+    switch (this.type) {
+      case TT.DART: case TT.BURST:
+        this.x += this.vx * speedMult * f; this.y += this.vy * speedMult * f; break;
+      case TT.DRIFTER: {
+        const a = Math.atan2(ty - this.y, tx - this.x);
+        this.vx += Math.cos(a) * 0.15 * S * f; this.vy += Math.sin(a) * 0.15 * S * f;
+        const sp = Math.hypot(this.vx, this.vy), max = 4 * S * speedMult;
+        if (sp > max) { this.vx = this.vx/sp*max; this.vy = this.vy/sp*max; }
+        this.x += this.vx * f; this.y += this.vy * f; break;
+      }
+      case TT.PULSE:
+        this.pulseRadius += 1.0 * S * speedMult * f; break;
+      case TT.TRACKER: {
+        const a = Math.atan2(ty - this.y, tx - this.x);
+        this.vx += Math.cos(a) * 0.08 * S * f; this.vy += Math.sin(a) * 0.08 * S * f;
+        const sp = Math.hypot(this.vx, this.vy), max = 3 * S * speedMult;
+        if (sp > max) { this.vx = this.vx/sp*max; this.vy = this.vy/sp*max; }
+        this.x += this.vx * f; this.y += this.vy * f; break;
+      }
+      case TT.GHOST:
+        this.ghostTimer += dt;
+        if (this.ghostTimer >= this.ghostCycle) { this.ghostTimer -= this.ghostCycle; this.visible = !this.visible; }
+        this.x += this.vx * speedMult * f; this.y += this.vy * speedMult * f; break;
+    }
+    if (this.type !== TT.PULSE) {
+      this.trail.push([this.x, this.y]); if (this.trail.length > 5) this.trail.shift();
+    }
+  }
+  draw(g, color) {
+    if (this.type === TT.GHOST && !this.visible) {
+      g.globalAlpha = 30/255; g.strokeStyle = color; g.lineWidth = 1.5;
+      g.beginPath(); g.arc(this.x, this.y, this.radius, 0, TWO_PI); g.stroke(); g.globalAlpha = 1; return;
+    }
+    if (this.type !== TT.PULSE) {
+      g.fillStyle = color;
+      for (let i = 0; i < this.trail.length; i++) {
+        g.globalAlpha = Math.min(100, 30 + i * 15) / 255;
+        const rr = this.radius * 0.4 * (i + 1) / this.trail.length;
+        g.beginPath(); g.arc(this.trail[i][0], this.trail[i][1], Math.max(0.4, rr), 0, TWO_PI); g.fill();
+      }
+    }
+    g.globalAlpha = 1; g.fillStyle = color; g.strokeStyle = color;
+    switch (this.type) {
+      case TT.PULSE:
+        g.lineWidth = 4; g.beginPath(); g.arc(this.x, this.y, Math.max(0.5, this.pulseRadius), 0, TWO_PI); g.stroke(); break;
+      case TT.BURST: {
+        const r = this.radius;
+        g.beginPath(); g.moveTo(this.x, this.y - r*1.3); g.lineTo(this.x + r, this.y);
+        g.lineTo(this.x, this.y + r*1.3); g.lineTo(this.x - r, this.y); g.closePath(); g.fill(); break;
+      }
+      case TT.TRACKER: {
+        const a = Math.atan2(this.vy, this.vx), r = this.radius;
+        g.beginPath();
+        g.moveTo(this.x + Math.cos(a)*r*1.5, this.y + Math.sin(a)*r*1.5);
+        g.lineTo(this.x + Math.cos(a+2.5)*r, this.y + Math.sin(a+2.5)*r);
+        g.lineTo(this.x + Math.cos(a-2.5)*r, this.y + Math.sin(a-2.5)*r);
+        g.closePath(); g.fill(); break;
+      }
+      default:
+        g.beginPath(); g.arc(this.x, this.y, this.radius, 0, TWO_PI); g.fill();
+    }
+  }
+  collides(px, py, pr) {
+    const d = Math.hypot(this.x - px, this.y - py);
+    if (this.type === TT.PULSE) return Math.abs(d - this.pulseRadius) < (pr + 4*S);
+    return d < (this.radius + pr);
+  }
+  isCloseCall(px, py, pr, margin) {
+    if (this.type === TT.PULSE) return false;
+    const d = Math.hypot(this.x - px, this.y - py);
+    return d < (this.radius + pr + margin) && d >= (this.radius + pr);
+  }
+  isOffScreen(b) {
+    const buf = 50 * S;
+    if (this.type === TT.PULSE) return this.pulseRadius > Math.max(b.r - b.l, b.bo - b.t);
+    return this.x < b.l - buf || this.x > b.r + buf || this.y < b.t - buf || this.y > b.bo + buf;
+  }
+}
+
+// ════════════════════════════════════════════════════════════  ThreatFactory
+class ThreatFactory {
+  constructor(rng){ this.rng = rng || Math.random; }
+  selectType(elapsed) {
+    const a = [TT.DART];
+    if (elapsed >= 5)  a.push(TT.DRIFTER);
+    if (elapsed >= 10) a.push(TT.PULSE);
+    if (elapsed >= 20) a.push(TT.TRACKER);
+    if (elapsed >= 35) a.push(TT.BURST);
+    if (elapsed >= 50) a.push(TT.GHOST);
+    const w = a.map((_, i) => 1 + i * 0.3);
+    const total = w.reduce((s, v) => s + v, 0);
+    let roll = this.rng() * total;
+    for (let i = 0; i < a.length; i++) { roll -= w[i]; if (roll <= 0) return a[i]; }
+    return a[a.length - 1];
+  }
+  edge(b) {
+    const e = Math.floor(this.rng() * 4);
+    switch (e) {
+      case 0: return [b.l + this.rng()*(b.r-b.l), b.t - 20*S];
+      case 1: return [b.l + this.rng()*(b.r-b.l), b.bo + 20*S];
+      case 2: return [b.l - 20*S, b.t + this.rng()*(b.bo-b.t)];
+      default: return [b.r + 20*S, b.t + this.rng()*(b.bo-b.t)];
+    }
+  }
+  create(side, b, tx, ty, elapsed, baseSpeed) {
+    const type = this.selectType(elapsed);
+    if (type === TT.PULSE) {
+      const fw = b.r - b.l, fh = b.bo - b.t;
+      const xr = side === LEFT ? this.rng()*0.3 : 0.7 + this.rng()*0.3;
+      const yr = this.rng() < 0.5 ? this.rng()*0.3 : 0.7 + this.rng()*0.3;
+      return new Threat({ x: b.l + xr*fw, y: b.t + yr*fh, type: TT.PULSE, side, radius: 4*S });
+    }
+    const [sx, sy] = this.edge(b);
+    let angle = Math.atan2(ty - sy, tx - sx), speed, radius;
+    switch (type) {
+      case TT.DART:    speed = baseSpeed*(1.5 + this.rng()*0.5); radius = 8*S; break;
+      case TT.DRIFTER: angle += (this.rng()-0.5)*0.8; speed = baseSpeed*(1.2 + this.rng()*0.4); radius = 9*S; break;
+      case TT.TRACKER: angle += (this.rng()-0.5)*1.2; speed = baseSpeed*(0.8 + this.rng()*0.3); radius = 10*S; break;
+      case TT.BURST:   speed = baseSpeed*(1.0 + this.rng()*0.3); radius = 12*S; break;
+      case TT.GHOST:   speed = baseSpeed*(1.3 + this.rng()*0.4); radius = 9*S; break;
+      default:         speed = baseSpeed*1.5; radius = 8*S;
+    }
+    return new Threat({ x: sx, y: sy, vx: Math.cos(angle)*speed*S, vy: Math.sin(angle)*speed*S, type, side, radius });
+  }
+  burstFragments(parent, tx, ty, baseSpeed) {
+    const out = [];
+    for (let i = 0; i < 3; i++) {
+      const a = Math.atan2(ty - parent.y, tx - parent.x) + (i - 1) * 0.6;
+      const sp = baseSpeed * 1.8;
+      out.push(new Threat({ x: parent.x, y: parent.y, vx: Math.cos(a)*sp*S, vy: Math.sin(a)*sp*S, type: TT.DART, side: parent.side, radius: 6*S }));
+    }
+    return out;
+  }
+}
+
+// ════════════════════════════════════════════════════════════  SplitField
+class SplitField {
+  constructor(side, factory, rng){
+    this.side = side; this.factory = factory;
+    this.particles = new ParticleSystem(rng);
+    this.bounds = { l:0, t:0, r:0, bo:0 };
+    this.player = new PlayerShape(0, 0);
+    this.threats = [];
+    this.isActive = false; this.spawnTimer = 0; this.threatsDodged = 0;
+    this.spawnInterval = 3000; this.threatSpeed = 1.5; this.maxSim = 2;
+    this.closeCallMargin = 20 * S; this.closeCallCooldown = 500; this.closeCallTimer = 0;
+    this.shiftFlash = 0; this.hitFlash = 0;
+    this.color = side === LEFT ? COL.red : COL.yellow;
+  }
+  setLayout(b, px, py) { this.bounds = b; this.player.x = px; this.player.y = py; this.closeCallMargin = 20 * S; }
+  update(dt, elapsed) {
+    const res = { lostLife:false, shieldBroken:false, closeCall:false, scoreBonus:0 };
+    this.player.active = this.isActive;
+    this.player.update(dt);
+    this.particles.update(dt);
+    if (this.shiftFlash > 0) { this.shiftFlash -= dt * 0.008; if (this.shiftFlash < 0) this.shiftFlash = 0; }
+    if (this.hitFlash > 0) { this.hitFlash -= dt * 0.005; if (this.hitFlash < 0) this.hitFlash = 0; }
+
+    this.spawnTimer += dt;
+    if (this.spawnTimer >= this.spawnInterval && this.threats.length < this.maxSim) {
+      this.spawnTimer = 0;
+      this.threats.push(this.factory.create(this.side, this.bounds, this.player.x, this.player.y, elapsed, this.threatSpeed));
+    }
+    if (this.closeCallTimer > 0) this.closeCallTimer -= dt;
+
+    const add = [], remove = new Set();
+    for (const th of this.threats) {
+      th.update(dt, this.player.x, this.player.y, 1);
+
+      if (th.type === TT.BURST && !th.hasBurst) {
+        const d = Math.hypot(th.x - this.player.x, th.y - this.player.y);
+        if (d < (this.bounds.r - this.bounds.l) * 0.3) {
+          th.hasBurst = true; remove.add(th);
+          for (const f of this.factory.burstFragments(th, this.player.x, this.player.y, this.threatSpeed)) add.push(f);
+        }
+      }
+
+      if (th.collides(this.player.x, this.player.y, PR)) {
+        if (this.isActive) {
+          if (this.player.shielded) {
+            this.player.shielded = false;
+            this.particles.spawnShieldBreak(this.player.x, this.player.y);
+            res.shieldBroken = true;
+          } else {
+            this.hitFlash = 1;
+            this.particles.spawnShatter(this.player.x, this.player.y, COL.red);
+            res.lostLife = true;
+          }
+          remove.add(th);
+        } else {
+          remove.add(th); res.scoreBonus += 10; this.threatsDodged++;
+        }
+      } else if (this.isActive && this.closeCallTimer <= 0 &&
+                 th.isCloseCall(this.player.x, this.player.y, PR, this.closeCallMargin)) {
+        this.closeCallTimer = this.closeCallCooldown;
+        res.closeCall = true; res.scoreBonus += 5;
+        this.particles.spawnCloseCall(this.player.x, this.player.y);
+      }
+
+      if (th.isOffScreen(this.bounds)) { remove.add(th); this.threatsDodged++; res.scoreBonus += 10; }
+    }
+    if (remove.size) this.threats = this.threats.filter(t => !remove.has(t));
+    for (const f of add) this.threats.push(f);
+    return res;
+  }
+  draw(g) {
+    const b = this.bounds;
+    if (!this.isActive) { g.globalAlpha = 100/255; g.fillStyle = '#000'; g.fillRect(b.l, b.t, b.r-b.l, b.bo-b.t); g.globalAlpha = 1; }
+    if (this.shiftFlash > 0) { g.globalAlpha = Math.min(40, this.shiftFlash*40)/255; g.fillStyle = COL.cyan; g.fillRect(b.l, b.t, b.r-b.l, b.bo-b.t); g.globalAlpha = 1; }
+    if (this.hitFlash > 0) { g.globalAlpha = Math.min(80, this.hitFlash*80)/255; g.fillStyle = COL.red; g.fillRect(b.l, b.t, b.r-b.l, b.bo-b.t); g.globalAlpha = 1; }
+    for (const th of this.threats) th.draw(g, this.color);
+    this.player.draw(g);
+    this.particles.draw(g);
+  }
+  onShift(active) { this.isActive = active; if (active) this.shiftFlash = 1; }
+  clearAll() { this.threats = []; this.spawnTimer = 0; }
+}
+
+// ════════════════════════════════════════════════════════════  PowerUps
+const PU = {
+  SLOW_MO:    { name:'SLOW-MO',  duration:5000 },
+  CLEAR:      { name:'CLEAR!',   duration:0 },
+  DOUBLE:     { name:'2× SCORE', duration:10000 },
+};
+
+// ════════════════════════════════════════════════════════════  GameEngine
+const STATE = { IDLE:'IDLE', PLAYING:'PLAYING', GAME_OVER:'GAME_OVER' };
+const MAX_LIVES = 3;
+
+class GameEngine {
+  constructor(){ this.state = STATE.IDLE; this.onGameOver = null; }
+  layout() {
+    const left  = { l:0,   t:0, r:W/2, bo:H };
+    const right = { l:W/2, t:0, r:W,   bo:H };
+    if (this.left)  this.left.setLayout(left,  W/4,   H/2);
+    if (this.right) this.right.setLayout(right, W*3/4, H/2);
+  }
+  start(rng, shield) {
+    this.rng = rng || Math.random;
+    const factory = new ThreatFactory(this.rng);
+    this.left = new SplitField(LEFT, factory, this.rng);
+    this.right = new SplitField(RIGHT, factory, this.rng);
+    this.layout();
+    this.activeSide = LEFT;
+    this.left.onShift(true); this.right.onShift(false);
+    if (shield) { this.left.player.shielded = true; this.right.player.shielded = true; }
+
+    this.lives = MAX_LIVES;
+    this.score = 0; this.scoreAcc = 0; this.multiplier = 1;
+    this.elapsedMs = 0; this.totalDodged = 0; this.closeCalls = 0; this.closeCallStreak = 0;
+    this.lastDodgeMilestone = 0; this.lastTimeMilestone = 0;
+    this.closeFlash = 0; this.dividerFlash = 0; this.gameOverFlash = 0; this.powerFlash = 0;
+    this.shakeX = 0; this.shakeY = 0; this.shakeMag = 0; this.shakeTimer = 0;
+    this.invinc = 0; this.activePowerUp = null;
+    this.state = STATE.PLAYING;
+  }
+  get elapsedSec(){ return this.elapsedMs / 1000; }
+  shift() {
+    if (this.state !== STATE.PLAYING) return;
+    this.activeSide = this.activeSide === LEFT ? RIGHT : LEFT;
+    this.left.onShift(this.activeSide === LEFT);
+    this.right.onShift(this.activeSide === RIGHT);
+    this.dividerFlash = 1;
+  }
+  update(dt) {
+    if (this.state !== STATE.PLAYING) return;
+    this.elapsedMs += dt;
+    if (this.invinc > 0) this.invinc -= dt;
+    this.updateDifficulty();
+    this.scoreAcc += (dt / 1000) * this.multiplier;
+    this.processResult(this.left.update(dt, this.elapsedSec));
+    if (this.state !== STATE.PLAYING) { this.score = Math.trunc(this.scoreAcc); return; }
+    this.processResult(this.right.update(dt, this.elapsedSec));
+    this.updateMultiplier();
+    this.totalDodged = this.left.threatsDodged + this.right.threatsDodged;
+    const dm = Math.floor(this.totalDodged / 15);
+    if (dm > this.lastDodgeMilestone) { this.lastDodgeMilestone = dm; this.activatePowerUp('CLEAR'); }
+    if (this.elapsedSec > 10 && Math.floor(this.elapsedSec / 30) > Math.floor(this.lastTimeMilestone / 30)) {
+      this.lastTimeMilestone = this.elapsedSec; this.activatePowerUp('DOUBLE');
+    }
+    this.updateVisualEffects(dt);
+    this.score = Math.trunc(this.scoreAcc);
+  }
+  processResult(res) {
+    this.scoreAcc += res.scoreBonus * this.multiplier;
+    if (res.closeCall) {
+      this.closeFlash = 1; this.closeCallStreak++; this.closeCalls++;
+      if (this.closeCallStreak >= 3) { this.closeCallStreak = 0; this.activatePowerUp('SLOW_MO'); }
+    }
+    if (res.shieldBroken) this.triggerShake(2);
+    if (res.lostLife) {
+      if (this.invinc > 0) return;
+      this.closeCallStreak = 0;
+      this.lives--; this.triggerShake(3);
+      if (this.lives <= 0) {
+        this.state = STATE.GAME_OVER; this.gameOverFlash = 1;
+        if (this.onGameOver) this.onGameOver(Math.trunc(this.scoreAcc), this.elapsedSec, this.totalDodged, this.closeCalls);
+      } else {
+        this.invinc = 1000;
+      }
+    }
+  }
+  updateDifficulty() {
+    const s = this.elapsedSec;
+    const speed = s<15?1.5 : s<45?2.0 : s<90?2.8 : s<180?3.5 : 4.2;
+    const interval = s<15?3000 : s<45?2000 : s<90?1500 : s<180?1000 : 700;
+    const maxSim = s<15?2 : s<45?4 : s<90?6 : s<180?8 : 12;
+    const eff = this.activePowerUp && this.activePowerUp.key === 'SLOW_MO' ? speed * 0.5 : speed;
+    for (const f of [this.left, this.right]) { f.threatSpeed = eff; f.spawnInterval = interval; f.maxSim = maxSim; }
+  }
+  updateMultiplier() {
+    const s = this.elapsedSec;
+    const base = s >= 120 ? 2.0 : s >= 60 ? 1.5 : 1.0;
+    this.multiplier = this.activePowerUp && this.activePowerUp.key === 'DOUBLE' ? base * 2 : base;
+  }
+  updateVisualEffects(dt) {
+    if (this.closeFlash > 0) { this.closeFlash -= dt * 0.004; if (this.closeFlash < 0) this.closeFlash = 0; }
+    if (this.dividerFlash > 0) { this.dividerFlash -= dt * 0.012; if (this.dividerFlash < 0) this.dividerFlash = 0; }
+    if (this.shakeTimer > 0) {
+      this.shakeTimer -= dt;
+      const inten = (this.shakeTimer / 150) * this.shakeMag * S;
+      this.shakeX = (Math.random() - 0.5) * 2 * inten; this.shakeY = (Math.random() - 0.5) * 2 * inten;
+    } else { this.shakeX = 0; this.shakeY = 0; }
+    if (this.activePowerUp && this.activePowerUp.key !== 'CLEAR') {
+      this.activePowerUp.remaining -= dt;
+      if (this.activePowerUp.remaining <= 0) this.activePowerUp = null;
+    }
+    if (this.powerFlash > 0) { this.powerFlash -= dt * 0.003; if (this.powerFlash < 0) this.powerFlash = 0; }
+    if (this.gameOverFlash > 0) { this.gameOverFlash -= dt * 0.003; if (this.gameOverFlash < 0) this.gameOverFlash = 0; }
+  }
+  triggerShake(mag) { this.shakeMag = mag; this.shakeTimer = 150; }
+  activatePowerUp(key) {
+    if (this.activePowerUp && this.activePowerUp.key === 'DOUBLE' && key !== 'DOUBLE') return;
+    this.activePowerUp = { key, name: PU[key].name, duration: PU[key].duration, remaining: PU[key].duration };
+    this.powerFlash = 1;
+    if (key === 'CLEAR') { this.left.clearAll(); this.right.clearAll(); this.activePowerUp = null; }
+  }
+  draw(g) {
+    g.save(); g.translate(this.shakeX, this.shakeY);
+    this.left.draw(g); this.right.draw(g);
+    // Divider
+    const dx = W / 2;
+    g.strokeStyle = COL.white; g.lineWidth = 1.5;
+    g.globalAlpha = this.dividerFlash > 0 ? Math.min(255, 50 + this.dividerFlash * 205)/255 : 50/255;
+    g.beginPath(); g.moveTo(dx, 0); g.lineTo(dx, H); g.stroke(); g.globalAlpha = 1;
+    this.drawHUD(g);
+    if (this.closeFlash > 0) {
+      g.globalAlpha = Math.min(1, this.closeFlash); g.fillStyle = COL.white;
+      g.font = `${Math.round(24*S)}px 'Black Ops One', sans-serif`; g.textAlign = 'center';
+      g.fillText('CLOSE!', W/2, H/2 - 40*S); g.globalAlpha = 1;
+    }
+    if (this.gameOverFlash > 0) {
+      g.globalAlpha = Math.min(60, this.gameOverFlash*60)/255; g.fillStyle = COL.red;
+      g.fillRect(0, 0, W, H); g.globalAlpha = 1;
+    }
+    g.restore();
+  }
+  drawHUD(g) {
+    g.textAlign = 'center';
+    // Score
+    g.globalAlpha = 1; g.fillStyle = COL.white;
+    g.font = `${Math.round(34*S)}px 'Black Ops One', sans-serif`;
+    g.fillText(String(this.score), W/2, 64*S);
+    // Multiplier
+    if (this.multiplier > 1) {
+      g.fillStyle = COL.cyan; g.globalAlpha = 200/255;
+      g.font = `${Math.round(16*S)}px 'Space Mono', monospace`;
+      g.fillText('×' + this.multiplier, W/2, 90*S); g.globalAlpha = 1;
+    }
+    // Lives
+    const lr = 6*S, sp = 20*S, tw = (MAX_LIVES-1)*sp, sx = W/2 - tw/2, ly = 112*S;
+    for (let i = 0; i < MAX_LIVES; i++) {
+      if (i < this.lives) { g.fillStyle = COL.cyan; g.globalAlpha = 1; }
+      else { g.fillStyle = COL.white; g.globalAlpha = 40/255; }
+      g.beginPath(); g.arc(sx + i*sp, ly, lr, 0, TWO_PI); g.fill();
+    }
+    g.globalAlpha = 1;
+    if (this.invinc > 0 && Math.floor(this.invinc/100) % 2 === 0) {
+      g.strokeStyle = COL.red; g.globalAlpha = 120/255; g.lineWidth = 2;
+      for (let i = 0; i < this.lives; i++) { g.beginPath(); g.arc(sx + i*sp, ly, lr + 2*S, 0, TWO_PI); g.stroke(); }
+      g.globalAlpha = 1;
+    }
+    // Shield labels
+    g.font = `${Math.round(13*S)}px 'Space Mono', monospace`; g.fillStyle = COL.purple; g.globalAlpha = 200/255;
+    if (this.left.player.shielded)  g.fillText('SHIELD', W/4, 40*S);
+    if (this.right.player.shielded) g.fillText('SHIELD', W*3/4, 40*S);
+    g.globalAlpha = 1;
+    // Active power-up
+    if (this.activePowerUp) {
+      g.fillStyle = COL.yellow; g.globalAlpha = 220/255;
+      g.font = `${Math.round(18*S)}px 'Black Ops One', sans-serif`;
+      g.fillText(this.activePowerUp.name, W/2, 142*S);
+      if (this.activePowerUp.key !== 'CLEAR') {
+        const prog = this.activePowerUp.remaining / this.activePowerUp.duration;
+        const bw = 80*S, bl = W/2 - bw/2, by = 150*S;
+        g.globalAlpha = 180/255; g.fillStyle = '#4a4a4a'; g.fillRect(bl, by, bw, 5*S);
+        g.globalAlpha = 220/255; g.fillStyle = COL.yellow; g.fillRect(bl, by, bw*prog, 5*S);
+      }
+      g.globalAlpha = 1;
+    }
+    if (this.powerFlash > 0) {
+      g.globalAlpha = Math.min(40, this.powerFlash*40)/255; g.fillStyle = COL.yellow;
+      g.fillRect(0, 0, W, H); g.globalAlpha = 1;
+    }
+    g.textAlign = 'start';
+  }
+}
+
+// ════════════════════════════════════════════════════════════  Glue
+let engine = null, runState = 'MENU', isDailyMode = false, lastT = 0;
+resize();
+window.addEventListener('resize', resize);
+
+const menuEl = document.getElementById('menu'), hudEl = document.getElementById('hud'),
+      goEl = document.getElementById('gameover'), dailyBadge = document.getElementById('daily-badge'),
+      btnDaily = document.getElementById('btn-daily');
+
+document.getElementById('menu-best').textContent = Scores.getHigh();
+refreshDailyBtn();
+function refreshDailyBtn() {
+  if (Scores.hasPlayedToday()) { btnDaily.classList.add('played'); btnDaily.textContent = '📅  DAILY — PLAYED'; }
+  else { btnDaily.classList.remove('played'); btnDaily.textContent = '📅  DAILY CHALLENGE'; }
+}
+
+function startGame(daily) {
+  isDailyMode = daily;
+  if (!engine) engine = new GameEngine();
+  engine.onGameOver = handleGameOver;
+  engine.start(daily ? mulberry32(Daily.seed()) : Math.random, daily);
+  menuEl.style.display = 'none'; goEl.style.display = 'none';
+  hudEl.style.display = 'block'; dailyBadge.style.display = daily ? 'block' : 'none';
+  runState = 'PLAYING';
+}
+
+function handleGameOver(score, time, dodged, close) {
+  runState = 'DEAD';
+  Scores.saveHigh(score);
+  if (isDailyMode) Scores.saveDaily(score);
+  document.getElementById('go-score').textContent = score;
+  document.getElementById('go-best').textContent = Math.max(score, Scores.getHigh());
+  document.getElementById('go-time').textContent = Math.floor(time) + 's';
+  document.getElementById('go-dodged').textContent = dodged;
+  document.getElementById('go-close').textContent = close;
+  document.getElementById('menu-best').textContent = Scores.getHigh();
+  document.getElementById('go-daily').style.display = isDailyMode ? 'none' : 'block';
+  refreshDailyBtn();
+  hudEl.style.display = 'none'; goEl.style.display = 'flex';
+}
+
+document.getElementById('btn-play').addEventListener('click', () => startGame(false));
+btnDaily.addEventListener('click', () => { if (!Scores.hasPlayedToday()) startGame(true); });
+document.getElementById('btn-again').addEventListener('click', () => startGame(isDailyMode));
+document.getElementById('go-daily').addEventListener('click', () => { if (!Scores.hasPlayedToday()) startGame(true); });
+
+// Tap / click anywhere = SHIFT
+canvas.addEventListener('pointerdown', e => {
+  if (runState === 'PLAYING' && engine && engine.state === STATE.PLAYING) engine.shift();
+  e.preventDefault();
+}, { passive:false });
+
+// Keyboard — Space/Enter/arrows mirror a tap
+window.addEventListener('keydown', e => {
+  const k = e.code;
+  if (k !== 'Space' && k !== 'Enter' && k !== 'ArrowLeft' && k !== 'ArrowRight' && k !== 'ArrowUp' && k !== 'ArrowDown') return;
+  if (e.repeat) { e.preventDefault(); return; }
+  e.preventDefault();
+  if (!engine || runState === 'MENU') { startGame(false); return; }
+  if (engine.state === STATE.PLAYING) engine.shift();
+  else if (engine.state === STATE.GAME_OVER) startGame(isDailyMode);
+}, { passive:false });
+
+function loop(t) {
+  const dt = lastT ? Math.min(t - lastT, 50) : 16;
+  lastT = t;
+  ctx.fillStyle = COL.bg; ctx.fillRect(0, 0, W, H);
+  if (engine && runState !== 'MENU') { engine.update(dt); engine.draw(ctx); }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

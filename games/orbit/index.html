@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>ORBIT.IO – Reverse to Survive</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:100%; height:100%; overflow:hidden; background:#030507; }
+  canvas { display:block; touch-action:none; }
+  #ui { position:fixed; inset:0; pointer-events:none; font-family:'Space Mono', monospace; color:#fff; }
+  /* MENU */
+  #menu {
+    position:absolute; inset:0; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:0; pointer-events:all;
+  }
+  #menu .logo {
+    font-family:'Black Ops One', sans-serif;
+    font-size:clamp(3rem,13vw,6rem); line-height:1; margin-bottom:0.15em; letter-spacing:-0.02em;
+    color:#00f5ff; text-shadow:0 0 30px rgba(0,245,255,0.6);
+  }
+  #menu .logo .dim { color:#3a4a55; text-shadow:none; }
+  #menu .tagline {
+    font-size:clamp(0.55rem,2vw,0.75rem); color:rgba(255,255,255,0.4);
+    letter-spacing:0.18em; text-transform:lowercase; margin-bottom:3rem; text-align:center;
+  }
+  #menu .best { font-size:0.65rem; letter-spacing:0.2em; color:rgba(255,255,255,0.35); margin-bottom:2rem; text-transform:uppercase; }
+  #menu .best span { color:#ffd60a; font-size:0.9rem; }
+  .btn {
+    pointer-events:all; cursor:pointer; font-family:'Black Ops One', sans-serif;
+    letter-spacing:0.1em; border:none; outline:none;
+    display:flex; align-items:center; justify-content:center; gap:0.5rem;
+    transition:all 0.15s; -webkit-tap-highlight-color:transparent;
+  }
+  .btn-play {
+    background:#00f5ff; color:#000; font-size:1.1rem; padding:1rem 3rem; width:min(280px,72vw);
+    clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px));
+    margin-bottom:0.75rem;
+  }
+  .btn-play:hover { background:#fff; box-shadow:0 0 20px #00f5ff; }
+  .btn-daily {
+    background:transparent; color:#00f5ff; font-size:0.85rem; padding:0.75rem 2rem; width:min(280px,72vw);
+    border:1.5px solid rgba(0,245,255,0.4);
+    clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px));
+  }
+  .btn-daily:hover { border-color:#00f5ff; background:rgba(0,245,255,0.06); }
+  .btn-daily.played { opacity:0.4; }
+  #menu .howto {
+    position:absolute; bottom:2rem; left:0; right:0; text-align:center; padding:0 1.5rem;
+    font-size:0.6rem; letter-spacing:0.08em; color:rgba(255,255,255,0.3); line-height:1.8; text-transform:uppercase;
+  }
+  #menu .howto b { color:#00f5ff; }
+  /* HUD */
+  #hud { position:absolute; inset:0; display:none; pointer-events:none; }
+  #daily-badge {
+    position:absolute; top:0.5rem; left:50%; transform:translateX(-50%);
+    font-size:0.55rem; letter-spacing:0.15em; color:#00f5ff; opacity:0.6; text-transform:uppercase; display:none; padding-top:0.15rem;
+  }
+  /* CONTINUE PROMPT */
+  #continue {
+    position:absolute; inset:0; display:none; flex-direction:column;
+    align-items:center; justify-content:center; pointer-events:all; gap:0;
+    background:rgba(3,5,7,0.6);
+  }
+  #continue .c-title { font-family:'Black Ops One', sans-serif; font-size:clamp(1.4rem,6vw,2.2rem); color:#00f5ff; margin-bottom:0.4em; text-shadow:0 0 20px rgba(0,245,255,0.4); }
+  #continue .c-sub { font-size:0.7rem; color:rgba(255,255,255,0.5); letter-spacing:0.1em; margin-bottom:0.5rem; text-transform:uppercase; }
+  #continue .c-timer { font-size:2rem; font-weight:700; color:#ffd60a; margin-bottom:1.5rem; font-family:'Space Mono',monospace; }
+  #continue .c-decline { font-size:0.65rem; color:rgba(255,255,255,0.4); letter-spacing:0.1em; margin-top:1rem; text-transform:uppercase; cursor:pointer; pointer-events:all; }
+  #continue .c-decline:hover { color:#ff2d55; }
+  /* GAME OVER */
+  #gameover {
+    position:absolute; inset:0; display:none; flex-direction:column;
+    align-items:center; justify-content:center; pointer-events:all; gap:0;
+  }
+  #gameover .go-label { font-family:'Black Ops One', sans-serif; font-size:clamp(2rem,8vw,3.5rem); color:#ff2d55; text-shadow:0 0 30px rgba(255,45,85,0.5); margin-bottom:0.3em; }
+  #gameover .go-score { font-size:clamp(2.5rem,10vw,5rem); font-weight:700; color:#fff; line-height:1; margin-bottom:0.1em; }
+  #gameover .go-best { font-size:0.7rem; color:rgba(255,255,255,0.4); letter-spacing:0.2em; text-transform:uppercase; margin-bottom:2rem; }
+  #gameover .go-best span { color:#ffd60a; }
+  #gameover .go-stats { display:flex; gap:1.75rem; margin-bottom:2.5rem; flex-wrap:wrap; justify-content:center; max-width:90vw; }
+  #gameover .go-stat { text-align:center; }
+  #gameover .go-stat-val { font-size:1.2rem; font-weight:700; color:#00f5ff; display:block; }
+  #gameover .go-stat-lbl { font-size:0.55rem; letter-spacing:0.12em; color:rgba(255,255,255,0.3); text-transform:uppercase; }
+  #gameover .go-daily-cta { font-size:0.6rem; color:rgba(0,245,255,0.5); letter-spacing:0.1em; margin-top:1rem; text-transform:uppercase; cursor:pointer; pointer-events:all; }
+  #gameover .go-daily-cta:hover { color:#00f5ff; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="ui">
+  <div id="menu">
+    <div class="logo">ORBIT<span class="dim">.IO</span></div>
+    <div class="tagline">reverse to survive. time it or die.</div>
+    <div class="best">BEST &nbsp;<span id="menu-best">0</span></div>
+    <button class="btn btn-play" id="btn-play">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M3 18.5v-13A1.5 1.5 0 014.93 4.1l13 6.5a1.5 1.5 0 010 2.8l-13 6.5A1.5 1.5 0 013 18.5z"/></svg>
+      PLAY
+    </button>
+    <button class="btn btn-daily" id="btn-daily">📅 &nbsp;DAILY CHALLENGE</button>
+    <div class="howto">tap anywhere to reverse orbit &middot; dodge what's ahead &middot; watch what's <b>behind</b></div>
+  </div>
+  <div id="hud"><div id="daily-badge">DAILY CHALLENGE</div></div>
+  <div id="continue">
+    <div class="c-title">CONTINUE?</div>
+    <div class="c-sub">one free continue per run</div>
+    <div class="c-timer" id="c-timer">5</div>
+    <button class="btn btn-play" id="btn-continue">▶ &nbsp;CONTINUE</button>
+    <div class="c-decline" id="c-decline">no thanks — end run</div>
+  </div>
+  <div id="gameover">
+    <div class="go-label">GAME OVER</div>
+    <div class="go-score" id="go-score">0</div>
+    <div class="go-best">BEST &nbsp;<span id="go-best">0</span></div>
+    <div class="go-stats">
+      <div class="go-stat"><span class="go-stat-val" id="go-time">0s</span><span class="go-stat-lbl">Time</span></div>
+      <div class="go-stat"><span class="go-stat-val" id="go-dodged">0</span><span class="go-stat-lbl">Dodged</span></div>
+      <div class="go-stat"><span class="go-stat-val" id="go-misses">0</span><span class="go-stat-lbl">Near Misses</span></div>
+    </div>
+    <button class="btn btn-play" id="btn-again">▶ &nbsp;PLAY AGAIN</button>
+    <div class="go-daily-cta" id="go-daily">📅 &nbsp;TRY DAILY CHALLENGE</div>
+  </div>
+</div>
+
+<script>
+'use strict';
+// ════════════════════════════════════════════════════════════
+//  ORBIT.IO — Web port (faithful to Kotlin source)
+//  Tap reverses orbit direction. Threats hit your shape on the ring.
+// ════════════════════════════════════════════════════════════
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let W = 0, H = 0, CX = 0, CY = 0;
+function resize() {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth; H = window.innerHeight; CX = W/2; CY = H/2;
+  canvas.width = Math.floor(W*dpr); canvas.height = Math.floor(H*dpr);
+  canvas.style.width = W+'px'; canvas.style.height = H+'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+resize();
+window.addEventListener('resize', () => { resize(); if (engine) engine.setScreenSize(W,H); });
+
+const TWO_PI = Math.PI * 2;
+const COL = { bg:'#030507', cyan:'#00f5ff', danger:'#ff2d55', yellow:'#ffd60a', purple:'#7b2fff' };
+
+function mulberry32(seed) {
+  let s = seed >>> 0;
+  return function() {
+    s |= 0; s = s + 0x6D2B79F5 | 0;
+    let t = Math.imul(s ^ s>>>15, 1|s);
+    t = t + Math.imul(t ^ t>>>7, 61|t) ^ t;
+    return ((t ^ t>>>14)>>>0) / 4294967296;
+  };
+}
+function dayOfYear(d){ const s=new Date(d.getFullYear(),0,0); return Math.floor((d-s)/86400000); }
+const Daily = {
+  seed(){ const d=new Date(); return parseInt(`${d.getFullYear()}${dayOfYear(d)}`); },
+  key(){ const d=new Date(); return `${d.getFullYear()}${dayOfYear(d)}`; },
+};
+const Scores = {
+  getHigh(){ return parseInt(localStorage.getItem('orbit_high_score')||'0'); },
+  saveHigh(s){ if (s>this.getHigh()) localStorage.setItem('orbit_high_score', s); },
+  saveDaily(s){ const k=Daily.key(); localStorage.setItem('orbit_daily_score_'+k, s); localStorage.setItem('orbit_daily_played_'+k,'1'); },
+  hasPlayedToday(){ return localStorage.getItem('orbit_daily_played_'+Daily.key())==='1'; },
+};
+
+function normAngle(a){ return ((a % TWO_PI) + TWO_PI) % TWO_PI; }
+function normAngleDiff(diff){ let d = diff % TWO_PI; if (d>Math.PI) d-=TWO_PI; if (d<-Math.PI) d+=TWO_PI; return d; }
+
+// ════════════════════════════════════════════════════════════  ParticleSystem
+class ParticleSystem {
+  constructor(){ this.list = []; }
+  spawnDeath(x, y, color = COL.cyan, rng = Math.random) {
+    for (let i=0;i<8;i++){
+      const a = (i/8)*TWO_PI + rng()*0.5;
+      const sp = 150 + rng()*200;
+      this.list.push({ x,y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, life:0.6+rng()*0.4, size:6+rng()*6, color });
+    }
+  }
+  update(dt){
+    const s = dt/1000;
+    for (let i=this.list.length-1;i>=0;i--){
+      const p = this.list[i];
+      p.x += p.vx*s; p.y += p.vy*s; p.vx*=0.97; p.vy*=0.97; p.life-=s; p.size*=0.98;
+      if (p.life<=0) this.list.splice(i,1);
+    }
+  }
+  draw(g){
+    for (const p of this.list){
+      g.globalAlpha = Math.max(0, Math.min(1, p.life));
+      g.fillStyle = p.color;
+      g.beginPath(); g.arc(p.x, p.y, Math.max(0.5,p.size), 0, TWO_PI); g.fill();
+    }
+    g.globalAlpha = 1;
+  }
+  isActive(){ return this.list.length > 0; }
+}
+
+// ════════════════════════════════════════════════════════════  PlayerOrbit
+class PlayerOrbit {
+  constructor(){ this.angle=0; this.direction=1; this.speed=1.2; this.trail=[]; this.maxTrail=12; }
+  update(dt){
+    this.angle += this.speed * this.direction * (dt/1000);
+    this.angle = normAngle(this.angle);
+    this.trail.unshift(this.angle);
+    if (this.trail.length > this.maxTrail) this.trail.pop();
+  }
+  reverse(){ this.direction *= -1; }
+  getX(r){ return CX + Math.cos(this.angle)*r; }
+  getY(r){ return CY + Math.sin(this.angle)*r; }
+  draw(g, r, shielded){
+    const pr = r * 0.035;
+    for (let i=0;i<this.trail.length;i++){
+      const a = (1 - i/this.maxTrail) * 80 / 255;
+      const sz = pr * (1 - i/this.maxTrail) * 0.7;
+      g.globalAlpha = Math.max(0,a); g.fillStyle = COL.cyan;
+      g.beginPath(); g.arc(CX+Math.cos(this.trail[i])*r, CY+Math.sin(this.trail[i])*r, Math.max(0.4,sz), 0, TWO_PI); g.fill();
+    }
+    g.globalAlpha = 1;
+    const px = this.getX(r), py = this.getY(r), gr = pr*3;
+    const grad = g.createRadialGradient(px,py,0,px,py,gr);
+    grad.addColorStop(0,'rgba(0,245,255,0.25)'); grad.addColorStop(1,'rgba(0,245,255,0)');
+    g.fillStyle = grad; g.beginPath(); g.arc(px,py,gr,0,TWO_PI); g.fill();
+    g.fillStyle = COL.cyan; g.beginPath(); g.arc(px,py,pr,0,TWO_PI); g.fill();
+    // Shield ring — pulsing purple outline
+    if (shielded){
+      const mag = 0.7 + 0.3*Math.sin(performance.now()/250);
+      g.globalAlpha = mag; g.strokeStyle = COL.purple; g.lineWidth = 2.5;
+      g.beginPath(); g.arc(px,py, pr + 6 + mag*2, 0, TWO_PI); g.stroke();
+      g.globalAlpha = 1;
+    }
+  }
+}
+
+// ════════════════════════════════════════════════════════════  OrbitRing
+class OrbitRing {
+  constructor(){ this.radius=0; this.flashAlpha=0; }
+  flash(){ this.flashAlpha=180; }
+  update(dt){ if (this.flashAlpha>0){ this.flashAlpha -= dt*0.5; if (this.flashAlpha<0) this.flashAlpha=0; } }
+  draw(g){
+    g.strokeStyle = COL.cyan;
+    g.globalAlpha = 30/255; g.lineWidth = 8; g.beginPath(); g.arc(CX,CY,this.radius,0,TWO_PI); g.stroke();
+    g.globalAlpha = 100/255; g.lineWidth = 3; g.beginPath(); g.arc(CX,CY,this.radius,0,TWO_PI); g.stroke();
+    if (this.flashAlpha>0){ g.globalAlpha = this.flashAlpha/255; g.lineWidth = 6; g.beginPath(); g.arc(CX,CY,this.radius,0,TWO_PI); g.stroke(); }
+    g.globalAlpha = 30/255; g.fillStyle = COL.cyan; g.beginPath(); g.arc(CX,CY,4,0,TWO_PI); g.fill();
+    g.globalAlpha = 1;
+  }
+}
+
+// ════════════════════════════════════════════════════════════  Threat
+const T = { INBOUND:'INBOUND', ORBIT_MINE:'ORBIT_MINE', CHASER:'CHASER', PULSE_RING:'PULSE_RING', REVERSER:'REVERSER', SHRINKER:'SHRINKER' };
+
+class Threat {
+  constructor(opts){
+    this.type = opts.type;
+    this.targetAngle = opts.targetAngle || 0;
+    this.spawnDistance = opts.spawnDistance || 0;
+    this.speed = opts.speed != null ? opts.speed : 300;
+    this.ringAngle = opts.ringAngle || 0;
+    this.angularSpeed = opts.angularSpeed || 0;
+    this.gapAngle = opts.gapAngle || 0;
+    this.gapSize = opts.gapSize != null ? opts.gapSize : 0.8;
+    this.shrinkFactor = opts.shrinkFactor != null ? opts.shrinkFactor : 0.65;
+    this.shrinkDuration = opts.shrinkDuration != null ? opts.shrinkDuration : 3000;
+    this.x=0; this.y=0; this.alive=true; this.passedThrough=false; this.nearMissTriggered=false;
+    this.prevPlayerDist = Infinity;
+    this.currentDistance = this.spawnDistance;
+    this.pulseRadius = 0;
+    this.shrinkActive = false; this.shrinkTimer = 0; this.shrinkWarningTime = 2000; this.shrinkPhase = 0;
+    this.mineLifetime = 5000; this.mineAge = 0; this.mineFadeInTime = 500;
+    this.initialized = false;
+  }
+  get threatRadius(){
+    switch(this.type){ case T.ORBIT_MINE: return 6; case T.CHASER: case T.REVERSER: return 7; default: return 8; }
+  }
+  get drawSize(){
+    switch(this.type){ case T.ORBIT_MINE: return 15; case T.CHASER: case T.REVERSER: return 13; default: return 14; }
+  }
+  get isMineActive(){ return this.mineAge >= this.mineFadeInTime; }
+  init(orbitRadius){
+    if (this.initialized) return;
+    switch(this.type){
+      case T.INBOUND:
+        this.x = CX + Math.cos(this.targetAngle)*this.spawnDistance;
+        this.y = CY + Math.sin(this.targetAngle)*this.spawnDistance;
+        this.currentDistance = this.spawnDistance; break;
+      case T.ORBIT_MINE: case T.CHASER: case T.REVERSER:
+        this.x = CX + Math.cos(this.ringAngle)*orbitRadius;
+        this.y = CY + Math.sin(this.ringAngle)*orbitRadius; break;
+      case T.PULSE_RING: this.pulseRadius = 0; break;
+      case T.SHRINKER: this.shrinkPhase = 0; this.shrinkTimer = this.shrinkWarningTime; break;
+    }
+    this.initialized = true;
+  }
+  update(dt, orbitRadius, playerAngle, playerDirection){
+    this.init(orbitRadius);
+    const s = dt/1000;
+    switch(this.type){
+      case T.INBOUND:
+        this.currentDistance -= this.speed*s;
+        this.x = CX + Math.cos(this.targetAngle)*this.currentDistance;
+        this.y = CY + Math.sin(this.targetAngle)*this.currentDistance;
+        if (this.currentDistance < orbitRadius*0.3){ this.alive=false; this.passedThrough=true; }
+        break;
+      case T.ORBIT_MINE:
+        this.x = CX + Math.cos(this.ringAngle)*orbitRadius;
+        this.y = CY + Math.sin(this.ringAngle)*orbitRadius;
+        this.mineAge += dt; this.mineLifetime -= dt;
+        if (this.mineLifetime <= 0){ this.alive=false; this.passedThrough=true; }
+        break;
+      case T.CHASER:
+        this.ringAngle = normAngle(this.ringAngle + this.angularSpeed*playerDirection*s);
+        this.x = CX + Math.cos(this.ringAngle)*orbitRadius; this.y = CY + Math.sin(this.ringAngle)*orbitRadius;
+        break;
+      case T.REVERSER:
+        this.ringAngle = normAngle(this.ringAngle + this.angularSpeed*(-playerDirection)*s);
+        this.x = CX + Math.cos(this.ringAngle)*orbitRadius; this.y = CY + Math.sin(this.ringAngle)*orbitRadius;
+        break;
+      case T.PULSE_RING:
+        this.pulseRadius += this.speed*s;
+        if (this.pulseRadius > orbitRadius*1.5){ this.alive=false; this.passedThrough=true; }
+        break;
+      case T.SHRINKER:
+        if (this.shrinkPhase===0){ this.shrinkTimer-=dt; if (this.shrinkTimer<=0){ this.shrinkPhase=1; this.shrinkActive=true; this.shrinkTimer=this.shrinkDuration; } }
+        else if (this.shrinkPhase===1){ this.shrinkTimer-=dt; if (this.shrinkTimer<=0){ this.shrinkActive=false; this.shrinkPhase=2; this.alive=false; this.passedThrough=true; } }
+        break;
+    }
+  }
+  isOnOrbitRing(orbitRadius){
+    switch(this.type){
+      case T.INBOUND: return Math.abs(this.currentDistance-orbitRadius) < this.drawSize*5;
+      case T.ORBIT_MINE: return this.isMineActive;
+      case T.CHASER: case T.REVERSER: return true;
+      case T.PULSE_RING: return Math.abs(this.pulseRadius-orbitRadius) < 25;
+      case T.SHRINKER: return false;
+    }
+  }
+  checkCollision(px, py, pr, playerAngle, orbitRadius){
+    if (this.type === T.PULSE_RING){
+      if (Math.abs(this.pulseRadius-orbitRadius) < 30){
+        const ad = normAngleDiff(playerAngle - this.gapAngle);
+        return Math.abs(ad) > (this.gapSize/2 + 0.15);
+      }
+      return false;
+    }
+    if (this.type === T.SHRINKER) return false;
+    const dx = this.x-px, dy = this.y-py;
+    return Math.hypot(dx,dy) < (this.threatRadius + pr);
+  }
+  checkNearMiss(px, py, pr, playerAngle, orbitRadius){
+    if (this.nearMissTriggered) return false;
+    let isNear = false;
+    if (this.type === T.PULSE_RING){
+      if (Math.abs(this.pulseRadius-orbitRadius) < 30){
+        const ad = Math.abs(normAngleDiff(playerAngle - this.gapAngle)), hg = this.gapSize/2;
+        isNear = ad < hg && ad > hg*0.5;
+      }
+    } else if (this.type === T.SHRINKER){
+      isNear = false;
+    } else {
+      const dx = this.x-px, dy = this.y-py, dist = Math.hypot(dx,dy);
+      const thr = this.type===T.INBOUND ? (this.threatRadius+pr)*5.0
+                : this.type===T.ORBIT_MINE ? (this.threatRadius+pr)*2.8
+                : (this.threatRadius+pr)*1.8;
+      const receding = dist > this.prevPlayerDist - 0.5 && this.prevPlayerDist < thr;
+      this.prevPlayerDist = dist;
+      isNear = receding && dist < thr && dist >= (this.threatRadius+pr);
+    }
+    if (isNear) this.nearMissTriggered = true;
+    return isNear;
+  }
+  draw(g, orbitRadius){
+    if (!this.alive) return;
+    const glow = (color, r) => {
+      const grad = g.createRadialGradient(this.x,this.y,0,this.x,this.y,r);
+      grad.addColorStop(0,color); grad.addColorStop(1,'rgba(0,0,0,0)');
+      g.fillStyle = grad; g.beginPath(); g.arc(this.x,this.y,r,0,TWO_PI); g.fill();
+    };
+    const now = performance.now();
+    switch(this.type){
+      case T.INBOUND:
+        glow('rgba(255,45,85,0.38)', this.drawSize*2.5);
+        g.fillStyle = COL.danger; g.beginPath(); g.arc(this.x,this.y,this.drawSize,0,TWO_PI); g.fill(); break;
+      case T.ORBIT_MINE: {
+        const fade = Math.min(1, this.mineAge/this.mineFadeInTime);
+        const fscale = 0.3 + 0.7*fade;
+        const pulse = 1 + 0.15*Math.sin(now/200);
+        const size = this.drawSize*pulse*fscale;
+        g.globalAlpha = fade;
+        glow('rgba(255,214,10,0.38)', size*2.5);
+        g.fillStyle = COL.yellow;
+        g.save(); g.translate(this.x,this.y); g.rotate(Math.PI/4);
+        g.fillRect(-size*0.7,-size*0.7,size*1.4,size*1.4); g.restore();
+        g.globalAlpha = 1; break;
+      }
+      case T.CHASER: {
+        glow('rgba(255,45,85,0.38)', this.drawSize*2.5);
+        const pulse = 1 + 0.1*Math.sin(now/150);
+        g.fillStyle = COL.danger; g.beginPath(); g.arc(this.x,this.y,this.drawSize*pulse,0,TWO_PI); g.fill();
+        g.fillStyle = '#ff6b85'; g.beginPath(); g.arc(this.x,this.y,this.drawSize*0.4,0,TWO_PI); g.fill(); break;
+      }
+      case T.REVERSER:
+        glow('rgba(123,47,255,0.38)', this.drawSize*2.5);
+        g.fillStyle = COL.purple; g.beginPath(); g.arc(this.x,this.y,this.drawSize,0,TWO_PI); g.fill();
+        g.fillStyle = '#b06fff'; g.beginPath(); g.arc(this.x,this.y,this.drawSize*0.35,0,TWO_PI); g.fill(); break;
+      case T.PULSE_RING: {
+        if (this.pulseRadius<=0) break;
+        const alpha = this.pulseRadius<orbitRadius ? 200 : Math.max(0, 200*(1-(this.pulseRadius-orbitRadius)/(orbitRadius*0.5)));
+        const startRad = this.gapAngle + this.gapSize/2;
+        const sweep = TWO_PI - this.gapSize;
+        g.strokeStyle = COL.danger;
+        g.globalAlpha = (alpha/4)/255; g.lineWidth = 12;
+        g.beginPath(); g.arc(CX,CY,this.pulseRadius, startRad, startRad+sweep); g.stroke();
+        g.globalAlpha = alpha/255; g.lineWidth = 5;
+        g.beginPath(); g.arc(CX,CY,this.pulseRadius, startRad, startRad+sweep); g.stroke();
+        g.globalAlpha = 1; break;
+      }
+      case T.SHRINKER: {
+        if (this.shrinkPhase===0){
+          const tr = orbitRadius*this.shrinkFactor;
+          const pulse = 0.5 + 0.5*Math.sin(now/100);
+          g.strokeStyle = COL.yellow; g.globalAlpha = (80*pulse)/255; g.lineWidth = 3;
+          g.beginPath(); g.arc(CX,CY,tr,0,TWO_PI); g.stroke();
+          g.globalAlpha = (180*pulse)/255; g.fillStyle = COL.yellow;
+          g.font = "28px 'Black Ops One', sans-serif"; g.textAlign='center';
+          g.fillText('SHRINK!', CX, CY+orbitRadius+50);
+          g.globalAlpha = 1;
+        } else if (this.shrinkPhase===1){
+          const tr = orbitRadius*this.shrinkFactor;
+          g.strokeStyle = COL.yellow; g.globalAlpha = 60/255; g.lineWidth = 2;
+          g.beginPath(); g.arc(CX,CY,tr,0,TWO_PI); g.stroke(); g.globalAlpha = 1;
+        }
+        break;
+      }
+    }
+  }
+}
+
+// ════════════════════════════════════════════════════════════  ThreatFactory
+class ThreatFactory {
+  constructor(rng){ this.rng = rng || Math.random; }
+  spawn(time, orbitRadius, playerAngle, playerDirection, playerSpeed){
+    const pool = [T.INBOUND];
+    if (time>=15) pool.push(T.ORBIT_MINE);
+    if (time>=35) pool.push(T.CHASER);
+    if (time>=60) pool.push(T.PULSE_RING);
+    if (time>=90) pool.push(T.REVERSER);
+    if (time>=140) pool.push(T.SHRINKER);
+    const weighted = [];
+    for (const t of pool){ const w = t===T.INBOUND?3:1; for (let i=0;i<w;i++) weighted.push(t); }
+    const chosen = weighted[Math.floor(this.rng()*weighted.length)];
+    switch(chosen){
+      case T.INBOUND: return this.inbound(orbitRadius);
+      case T.ORBIT_MINE: return this.mine(playerAngle);
+      case T.CHASER: return this.chaser(playerAngle, playerDirection, playerSpeed);
+      case T.PULSE_RING: return this.pulse(playerAngle, orbitRadius);
+      case T.REVERSER: return this.reverser(playerAngle, playerDirection, playerSpeed);
+      case T.SHRINKER: return this.shrinker();
+    }
+  }
+  inbound(orbitRadius){
+    const angle = this.rng()*TWO_PI;
+    const maxDim = Math.max(W,H);
+    const dist = maxDim*0.6 + this.rng()*maxDim*0.2;
+    return new Threat({ type:T.INBOUND, targetAngle:angle, spawnDistance:dist, speed:250+this.rng()*100 });
+  }
+  mine(playerAngle){
+    const minGap = Math.PI*0.83;
+    const range = TWO_PI - 2*minGap;
+    const offset = minGap + this.rng()*range;
+    return new Threat({ type:T.ORBIT_MINE, ringAngle:normAngle(playerAngle+offset) });
+  }
+  chaser(playerAngle, dir, pspeed){
+    const offset = Math.PI*(0.3 + this.rng()*0.4);
+    return new Threat({ type:T.CHASER, ringAngle:normAngle(playerAngle - dir*offset), angularSpeed:pspeed*(1.1+this.rng()*0.15) });
+  }
+  pulse(playerAngle, orbitRadius){
+    const gapOffset = (this.rng()-0.5)*Math.PI*0.25;
+    return new Threat({ type:T.PULSE_RING, speed:orbitRadius*0.35, gapAngle:normAngle(playerAngle+gapOffset), gapSize:1.5+this.rng()*0.6 });
+  }
+  reverser(playerAngle, dir, pspeed){
+    const offset = Math.PI*(0.4 + this.rng()*0.6);
+    return new Threat({ type:T.REVERSER, ringAngle:normAngle(playerAngle + dir*offset), angularSpeed:pspeed*(0.8+this.rng()*0.4) });
+  }
+  shrinker(){
+    return new Threat({ type:T.SHRINKER, shrinkFactor:0.6+this.rng()*0.1, shrinkDuration:2500+this.rng()*1500 });
+  }
+}
+
+// ════════════════════════════════════════════════════════════  GameEngine
+const STATE = { IDLE:'IDLE', PLAYING:'PLAYING', DYING:'DYING', CONTINUE_PROMPT:'CONTINUE_PROMPT', GAME_OVER:'GAME_OVER' };
+
+class GameEngine {
+  constructor(){
+    this.state = STATE.IDLE;
+    this.player = new PlayerOrbit();
+    this.ring = new OrbitRing();
+    this.particles = new ParticleSystem();
+    this.threats = [];
+    this.rng = Math.random;
+    this.onGameOver = null; this.onContinuePrompt = null;
+    this.setScreenSize(W, H);
+  }
+  setScreenSize(w,h){
+    this.baseRadius = Math.min(w,h)*0.32;
+    this.ring.radius = this.baseRadius;
+    this.targetRadius = this.baseRadius;
+  }
+  start(rng){
+    this.rng = rng || Math.random;
+    this.state = STATE.PLAYING;
+    this.score=0; this.scoreAcc=0; this.timeSurvived=0; this.threatsDodged=0; this.nearMisses=0;
+    this.spawnTimer=0; this.spawnInterval=3000;
+    this.player.angle=0; this.player.direction=1; this.player.speed=0.6; this.player.trail=[];
+    this.streak=0; this.multiplier=1;
+    this.hasContinued=false; this.continueTimer=0;
+    this.hasShield=false; this.nearMissesSinceShield=0; this.shieldGraceTimer=0;
+    this.showNearMiss=false; this.nearMissTimer=0;
+    this.showShieldEarned=false; this.shieldEarnedTimer=0;
+    this.showShieldAbsorb=false; this.shieldAbsorbTimer=0;
+    this.shakeX=0; this.shakeY=0; this.shakeTimer=0; this.dyingTimer=0;
+    this.threats=[]; this.activeShrinker=null;
+    this.ring.radius=this.baseRadius; this.targetRadius=this.baseRadius;
+    this.factory = new ThreatFactory(this.rng);
+  }
+  onReverse(){
+    if (this.state===STATE.PLAYING){ this.player.reverse(); this.ring.flash(); }
+  }
+  update(dt){
+    if (this.state===STATE.PLAYING) this.updatePlaying(dt);
+    else if (this.state===STATE.DYING) this.updateDying(dt);
+    else if (this.state===STATE.CONTINUE_PROMPT) this.continueTimer -= dt;
+  }
+  updatePlaying(dt){
+    this.timeSurvived += dt/1000;
+    const speedMult = this.timeSurvived > 120 ? 2 : 1;
+    this.scoreAcc += (dt/1000)*speedMult; this.score = Math.trunc(this.scoreAcc);
+    if (this.shieldGraceTimer>0) this.shieldGraceTimer -= dt;
+    this.updateDifficulty();
+    this.updateRadius(dt);
+    this.player.update(dt);
+    this.ring.update(dt);
+    this.spawnTimer += dt;
+    if (this.spawnTimer >= this.spawnInterval){ this.spawnTimer=0; if (this.threats.length < this.maxThreats()) this.spawnThreat(); }
+    this.updateThreats(dt);
+    if (this.showNearMiss){ this.nearMissTimer-=dt; if (this.nearMissTimer<=0) this.showNearMiss=false; }
+    if (this.showShieldEarned){ this.shieldEarnedTimer-=dt; if (this.shieldEarnedTimer<=0) this.showShieldEarned=false; }
+    if (this.showShieldAbsorb){ this.shieldAbsorbTimer-=dt; if (this.shieldAbsorbTimer<=0) this.showShieldAbsorb=false; }
+    if (this.shakeTimer>0){ this.shakeTimer-=dt; this.shakeX=(Math.random()-0.5)*6; this.shakeY=(Math.random()-0.5)*6; }
+    else { this.shakeX=0; this.shakeY=0; }
+    this.particles.update(dt);
+  }
+  spawnThreat(){
+    const hasActive = this.activeShrinker && this.activeShrinker.alive;
+    let threat = this.factory.spawn(this.timeSurvived, this.baseRadius, this.player.angle, this.player.direction, this.player.speed);
+    if (threat.type===T.SHRINKER && hasActive) threat = this.factory.inbound(this.ring.radius);
+    if (threat.type===T.SHRINKER) this.activeShrinker = threat;
+    this.threats.push(threat);
+  }
+  updateThreats(dt){
+    const r = this.ring.radius;
+    const px = this.player.getX(r), py = this.player.getY(r), pr = r*0.035;
+    for (let i=this.threats.length-1;i>=0;i--){
+      const th = this.threats[i];
+      th.update(dt, r, this.player.angle, this.player.direction);
+      if (th.type===T.SHRINKER && th.shrinkActive) this.targetRadius = this.baseRadius*th.shrinkFactor;
+      if (th.type===T.SHRINKER && !th.alive){ if (this.activeShrinker===th){ this.activeShrinker=null; this.targetRadius=this.baseRadius; } }
+      if (!th.alive){
+        if (th.passedThrough){ this.threatsDodged++; this.scoreAcc += 10*this.multiplier; this.score=Math.trunc(this.scoreAcc); }
+        this.threats.splice(i,1); continue;
+      }
+      if (th.isOnOrbitRing(r)){
+        if (th.checkCollision(px,py,pr,this.player.angle,r)){
+          this.onPlayerHit(px,py);
+          if (this.state!==STATE.PLAYING) return;
+        }
+        if (th.checkNearMiss(px,py,pr,this.player.angle,r)) this.triggerNearMiss();
+      }
+    }
+  }
+  updateRadius(dt){
+    const diff = this.targetRadius - this.ring.radius;
+    if (Math.abs(diff)>1) this.ring.radius += diff*(dt/1000)*5;
+    else this.ring.radius = this.targetRadius;
+  }
+  updateDying(dt){
+    this.particles.update(dt);
+    this.dyingTimer -= dt;
+    if (this.dyingTimer<=0 || !this.particles.isActive()){
+      if (!this.hasContinued){
+        this.state = STATE.CONTINUE_PROMPT; this.continueTimer = 5000;
+        if (this.onContinuePrompt) this.onContinuePrompt();
+      } else {
+        this.state = STATE.GAME_OVER;
+        if (this.onGameOver) this.onGameOver(this.score, this.timeSurvived, this.threatsDodged, this.nearMisses);
+      }
+    }
+  }
+  continueAfterAd(){
+    this.hasContinued = true; this.state = STATE.PLAYING;
+    this.threats=[]; this.activeShrinker=null; this.targetRadius=this.baseRadius;
+    this.streak=0; this.multiplier=1;
+    this.showNearMiss=false; this.nearMissTimer=0; this.showShieldEarned=false; this.showShieldAbsorb=false;
+    this.spawnTimer = -2000;
+  }
+  declineContinue(){
+    this.state = STATE.GAME_OVER;
+    if (this.onGameOver) this.onGameOver(this.score, this.timeSurvived, this.threatsDodged, this.nearMisses);
+  }
+  onPlayerHit(px,py){
+    if (this.shieldGraceTimer>0) return;
+    if (this.hasShield){
+      this.hasShield=false; this.nearMissesSinceShield=0; this.shakeTimer=100;
+      this.showShieldAbsorb=true; this.shieldAbsorbTimer=1000; this.shieldGraceTimer=500;
+      this.particles.spawnDeath(px,py,COL.purple,this.rng);
+      return;
+    }
+    this.state=STATE.DYING; this.dyingTimer=1000;
+    this.particles.spawnDeath(px,py,COL.cyan,this.rng);
+    this.shakeTimer=150; this.streak=0; this.multiplier=1;
+  }
+  triggerNearMiss(){
+    this.nearMisses++; this.streak++;
+    this.multiplier = 1 + Math.floor(this.streak/3);
+    this.scoreAcc += 5*this.multiplier; this.score=Math.trunc(this.scoreAcc);
+    this.showNearMiss=true; this.nearMissTimer=600;
+    if (!this.hasShield){
+      this.nearMissesSinceShield++;
+      if (this.nearMissesSinceShield>=5){
+        this.hasShield=true; this.nearMissesSinceShield=0; this.shieldGraceTimer=1500;
+        this.showShieldEarned=true; this.shieldEarnedTimer=1500;
+      }
+    }
+  }
+  updateDifficulty(){
+    const t = this.timeSurvived;
+    if (t<15){ this.player.speed = 0.6 + (t/15)*0.2; this.spawnInterval=3000; }
+    else if (t<45){ const p=(t-15)/30; this.player.speed=0.8+p*0.7; this.spawnInterval=3000-p*1000; }
+    else if (t<90){ const p=(t-45)/45; this.player.speed=1.5+p*1.0; this.spawnInterval=2000-p*500; }
+    else if (t<180){ const p=(t-90)/90; this.player.speed=2.5+p*0.5; this.spawnInterval=1500-p*500; }
+    else { const p=Math.min((t-180)/120,1); this.player.speed=3.0+p*0.5; this.spawnInterval=1000-p*300; }
+  }
+  maxThreats(){
+    const t = this.timeSurvived;
+    return t<15?3 : t<45?6 : t<90?10 : t<180?14 : 20;
+  }
+  draw(g){
+    g.save();
+    g.translate(this.shakeX, this.shakeY);
+    this.ring.draw(g);
+    for (const th of this.threats) th.draw(g, this.ring.radius);
+    if (this.state===STATE.PLAYING || this.state===STATE.CONTINUE_PROMPT) this.player.draw(g, this.ring.radius, this.hasShield);
+    this.particles.draw(g);
+    g.restore();
+    // HUD
+    if (this.state===STATE.PLAYING || this.state===STATE.DYING || this.state===STATE.CONTINUE_PROMPT){
+      g.fillStyle = '#fff'; g.font = "36px 'Black Ops One', sans-serif"; g.textAlign='center';
+      g.fillText(String(this.score), CX, 70);
+      if (this.multiplier>1){ g.fillStyle=COL.cyan; g.globalAlpha=200/255; g.font="18px 'Space Mono', monospace"; g.fillText('×'+this.multiplier, CX, 96); g.globalAlpha=1; }
+      if (this.showNearMiss){ g.fillStyle=COL.cyan; g.font="20px 'Space Mono', monospace"; g.fillText('NEAR MISS ×'+this.nearMisses, CX, CY - this.ring.radius - 30); }
+      if (this.showShieldEarned){ g.fillStyle=COL.purple; g.font="22px 'Black Ops One', sans-serif"; g.fillText('SHIELD!', CX, CY + this.ring.radius + 70); }
+      if (this.showShieldAbsorb){ g.fillStyle=COL.purple; g.font="20px 'Black Ops One', sans-serif"; g.fillText('ABSORBED', CX, CY + this.ring.radius + 70); }
+    }
+  }
+}
+
+// ════════════════════════════════════════════════════════════  Glue
+let engine = null, runState = 'MENU', isDailyMode = false, lastT = 0, continueInterval = null;
+const menuEl=document.getElementById('menu'), hudEl=document.getElementById('hud'),
+      goEl=document.getElementById('gameover'), contEl=document.getElementById('continue'),
+      dailyBadge=document.getElementById('daily-badge'), btnDaily=document.getElementById('btn-daily');
+
+document.getElementById('menu-best').textContent = Scores.getHigh();
+refreshDailyBtn();
+function refreshDailyBtn(){
+  if (Scores.hasPlayedToday()){ btnDaily.classList.add('played'); btnDaily.textContent='📅  DAILY — PLAYED'; }
+  else { btnDaily.classList.remove('played'); btnDaily.textContent='📅  DAILY CHALLENGE'; }
+}
+
+function startGame(daily){
+  isDailyMode = daily;
+  engine = new GameEngine();
+  engine.onGameOver = handleGameOver;
+  engine.onContinuePrompt = showContinuePrompt;
+  engine.start(daily ? mulberry32(Daily.seed()) : Math.random);
+  menuEl.style.display='none'; goEl.style.display='none'; contEl.style.display='none';
+  hudEl.style.display='block'; dailyBadge.style.display = daily?'block':'none';
+  runState = 'PLAYING';
+}
+
+function showContinuePrompt(){
+  contEl.style.display='flex';
+  const timerEl = document.getElementById('c-timer');
+  if (continueInterval) clearInterval(continueInterval);
+  continueInterval = setInterval(() => {
+    if (!engine || engine.state !== STATE.CONTINUE_PROMPT){ clearInterval(continueInterval); return; }
+    timerEl.textContent = Math.max(0, Math.ceil(engine.continueTimer/1000));
+  }, 100);
+}
+
+function handleGameOver(score, time, dodged, misses){
+  runState = 'DEAD';
+  if (continueInterval) clearInterval(continueInterval);
+  contEl.style.display='none';
+  Scores.saveHigh(score);
+  if (isDailyMode) Scores.saveDaily(score);
+  document.getElementById('go-score').textContent = score;
+  document.getElementById('go-best').textContent = Math.max(score, Scores.getHigh());
+  document.getElementById('go-time').textContent = Math.floor(time)+'s';
+  document.getElementById('go-dodged').textContent = dodged;
+  document.getElementById('go-misses').textContent = misses;
+  document.getElementById('menu-best').textContent = Scores.getHigh();
+  document.getElementById('go-daily').style.display = isDailyMode ? 'none' : 'block';
+  refreshDailyBtn();
+  hudEl.style.display='none'; goEl.style.display='flex';
+}
+
+document.getElementById('btn-play').addEventListener('click', () => startGame(false));
+btnDaily.addEventListener('click', () => { if (!Scores.hasPlayedToday()) startGame(true); });
+document.getElementById('btn-again').addEventListener('click', () => startGame(isDailyMode));
+document.getElementById('go-daily').addEventListener('click', () => { if (!Scores.hasPlayedToday()) startGame(true); });
+document.getElementById('btn-continue').addEventListener('click', () => {
+  if (engine && engine.state===STATE.CONTINUE_PROMPT){ contEl.style.display='none'; engine.continueAfterAd(); runState='PLAYING'; }
+});
+document.getElementById('c-decline').addEventListener('click', () => {
+  if (engine && engine.state===STATE.CONTINUE_PROMPT){ engine.declineContinue(); }
+});
+
+// Tap = REVERSE. Ignore taps on the continue/gameover buttons (pointer-events handle those).
+canvas.addEventListener('pointerdown', e => {
+  if (runState==='PLAYING' && engine && engine.state===STATE.PLAYING) engine.onReverse();
+  e.preventDefault();
+}, { passive:false });
+
+// Keyboard input — Space/Enter/arrows mirror a tap on desktop
+window.addEventListener('keydown', e => {
+  const k = e.code;
+  if (k !== 'Space' && k !== 'Enter' && k !== 'ArrowLeft' && k !== 'ArrowRight' &&
+      k !== 'ArrowUp' && k !== 'ArrowDown') return;
+  if (e.repeat) { e.preventDefault(); return; } // hold = one action, not a stream
+  e.preventDefault();
+  if (!engine) { if (runState==='MENU') startGame(false); return; }
+  switch (engine.state) {
+    case STATE.PLAYING:
+      engine.onReverse();
+      break;
+    case STATE.CONTINUE_PROMPT:
+      contEl.style.display='none'; engine.continueAfterAd(); runState='PLAYING';
+      break;
+    case STATE.GAME_OVER:
+      startGame(isDailyMode);
+      break;
+    default:
+      if (runState==='MENU') startGame(false);
+  }
+}, { passive:false });
+
+function loop(t){
+  const dt = lastT ? Math.min(t-lastT, 50) : 16;
+  lastT = t;
+  ctx.fillStyle = COL.bg; ctx.fillRect(0,0,W,H);
+  if (engine && runState !== 'MENU' && engine.state !== STATE.GAME_OVER){
+    engine.update(dt);
+    engine.draw(ctx);
+  }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
