@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="description" content="Squeeze the walls to crush the spikes. Just don't squish Bob. A one-rule arcade game from Play Vibe Games.">
+<meta name="theme-color" content="#171233">
+<meta property="og:title" content="Don't Squish Bob">
+<meta property="og:description" content="You don't control a character. You control the box.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#129760;</text></svg>">
+<title>Don't Squish Bob</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap">
+<style>
+  :root{
+    --bg:#171233; --panel:#262052; --ink:#fff3d9; --ink-dim:#b9b0dd;
+    --amber:#ffc44d; --amber-dark:#cf8f1e; --mint:#74f2b6; --mint-dark:#157a4f;
+    --danger:#ff5470; --sky:#53e0ff;
+  }
+  html,body{margin:0;padding:0;background:var(--bg);}
+  #game{position:fixed;inset:0;background:var(--bg);overflow:hidden;touch-action:none;
+    -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;
+    font-family:'Fredoka','Trebuchet MS',system-ui,sans-serif;color:var(--ink);}
+  #cv{position:absolute;inset:0;display:block;}
+
+  /* ---------- HUD ---------- */
+  #hud{position:absolute;top:0;left:0;right:0;display:flex;align-items:flex-start;
+    justify-content:space-between;padding:calc(10px + env(safe-area-inset-top,0px)) 16px 0;
+    pointer-events:none;z-index:5;}
+  #hearts{display:flex;gap:4px;font-size:24px;line-height:1;min-width:86px;
+    filter:drop-shadow(0 2px 0 rgba(0,0,0,.35));}
+  #hearts span{color:var(--danger);transition:transform .15s,opacity .2s;}
+  #hearts span.off{color:#4a4470;opacity:.55;transform:scale(.82);}
+  #scoreWrap{text-align:center;}
+  #score{font-weight:700;font-size:44px;line-height:1;letter-spacing:1px;
+    font-variant-numeric:tabular-nums;text-shadow:0 3px 0 rgba(0,0,0,.35);}
+  #best{font-size:13px;font-weight:600;color:var(--ink-dim);letter-spacing:1.5px;margin-top:2px;}
+  #sndBtn{pointer-events:auto;min-width:86px;text-align:right;background:none;border:none;
+    font-size:24px;cursor:pointer;padding:2px 0;filter:drop-shadow(0 2px 0 rgba(0,0,0,.35));}
+  #sndBtn:focus-visible{outline:3px solid var(--sky);border-radius:8px;}
+  .hudHidden #hearts,.hudHidden #scoreWrap{visibility:hidden;}
+
+  /* ---------- Screens ---------- */
+  .scr{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
+    pointer-events:none;z-index:10;}
+  .scr.hidden{display:none;}
+  /* Anchor the title below the box's fixed top edge (interior starts at 96px),
+     not to viewport height — otherwise on short/wide screens 11vh drops below
+     96px and the logo bleeds up over the top frame. */
+  #titleScr{justify-content:flex-start;
+    padding-top:calc(96px + env(safe-area-inset-top,0px) + 3.5vh);}
+  #logo{font-weight:700;text-align:center;line-height:.95;
+    text-shadow:0 4px 0 rgba(0,0,0,.4);}
+  #logo .l1{font-size:clamp(30px,9vw,44px);letter-spacing:3px;display:block;color:var(--ink);}
+  #logo .l2{font-size:clamp(56px,17vw,86px);letter-spacing:1px;display:block;color:var(--mint);
+    -webkit-text-stroke:2px var(--mint-dark);}
+  #logo .l2 span{display:inline-block;}
+  @media (prefers-reduced-motion:no-preference){
+    #logo .l2 span{animation:bop 1.6s ease-in-out infinite;}
+    #logo .l2 span:nth-child(2n){animation-delay:.18s}
+    #logo .l2 span:nth-child(3n){animation-delay:.32s}
+    @keyframes bop{0%,100%{transform:translateY(0) scaleY(1)}50%{transform:translateY(-7px) scaleY(1.05)}}
+  }
+  #tag{margin-top:12px;font-size:clamp(15px,4.4vw,19px);font-weight:600;color:var(--ink-dim);
+    text-align:center;text-wrap:balance;padding:0 30px;line-height:1.45;}
+  #tag b{color:var(--amber);} #tag i{color:var(--danger);font-style:normal;}
+  .btn{pointer-events:auto;cursor:pointer;border:none;border-radius:20px;
+    font-family:inherit;font-weight:700;letter-spacing:2px;color:#3a2400;
+    background:var(--amber);box-shadow:0 6px 0 var(--amber-dark),0 10px 18px rgba(0,0,0,.35);
+    padding:16px 54px;font-size:26px;transition:transform .08s,box-shadow .08s;}
+  .btn:active{transform:translateY(5px);box-shadow:0 1px 0 var(--amber-dark);}
+  .btn:focus-visible{outline:3px solid var(--sky);outline-offset:3px;}
+  .btn.small{font-size:17px;padding:11px 26px;border-radius:15px;box-shadow:0 4px 0 var(--amber-dark);}
+  .btn.ghost{background:#3a3370;color:var(--ink);box-shadow:0 4px 0 #241e4d;}
+  #playBtn{margin-top:26px;}
+  @media (prefers-reduced-motion:no-preference){
+    #playBtn{animation:pulse 1.5s ease-in-out infinite;}
+    @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+  }
+  #footer{position:absolute;bottom:calc(12px + env(safe-area-inset-bottom,0px));
+    font-size:11px;letter-spacing:3px;color:#6a6198;font-weight:600;}
+
+  #deadScr{justify-content:center;background:rgba(13,10,31,.55);}
+  #deadCard{background:#221c45;border-radius:26px;padding:26px 30px 30px;text-align:center;
+    box-shadow:0 14px 40px rgba(0,0,0,.5);pointer-events:auto;max-width:320px;width:78%;}
+  #cause{font-size:24px;font-weight:700;line-height:1.2;text-wrap:balance;}
+  #causeTip{font-size:14px;color:var(--ink-dim);margin-top:6px;font-weight:600;}
+  #finalScore{font-size:56px;font-weight:700;color:var(--amber);margin-top:14px;line-height:1;
+    font-variant-numeric:tabular-nums;text-shadow:0 3px 0 rgba(0,0,0,.4);}
+  #runStats{font-size:14px;color:var(--ink-dim);margin-top:6px;font-weight:600;}
+  #newBest{display:none;margin:10px auto 0;width:max-content;background:var(--sky);color:#003347;
+    font-size:13px;font-weight:700;letter-spacing:2px;padding:4px 14px;border-radius:99px;}
+  #newBest.show{display:block;}
+  #deadBtns{display:flex;flex-direction:column;gap:12px;margin-top:20px;align-items:center;}
+
+  #pauseScr{justify-content:center;background:rgba(13,10,31,.7);font-size:26px;font-weight:700;
+    letter-spacing:2px;}
+
+  #toast{position:absolute;left:50%;bottom:calc(90px + env(safe-area-inset-bottom,0px));
+    transform:translateX(-50%) translateY(20px);background:#0d0a1f;color:var(--ink);
+    padding:10px 22px;border-radius:99px;font-size:15px;font-weight:600;opacity:0;
+    transition:opacity .25s,transform .25s;pointer-events:none;z-index:20;}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+
+</head>
+<body style="margin:0;background:#171233;">
+<a href="../../" style="position:fixed;left:12px;top:calc(10px + env(safe-area-inset-top,0px));z-index:40;
+   font-family:'Fredoka','Trebuchet MS',system-ui,sans-serif;font-weight:600;font-size:12px;letter-spacing:1.5px;
+   color:#b9b0dd;text-decoration:none;padding:6px 10px;border-radius:99px;background:rgba(13,10,31,.55);">&larr; VIBE GAMES</a>
+<div id="game">
+  <canvas id="cv"></canvas>
+
+  <div id="hud" class="hudHidden">
+    <div id="hearts"><span>&#9829;</span><span>&#9829;</span><span>&#9829;</span></div>
+    <div id="scoreWrap"><div id="score">0</div><div id="best">BEST 0</div></div>
+    <button id="sndBtn" aria-label="toggle sound">&#128266;</button>
+  </div>
+
+  <div id="titleScr" class="scr">
+    <div id="logo">
+      <span class="l1">DON'T SQUISH</span>
+      <span class="l2"><span>B</span><span>O</span><span>B</span><span>!</span></span>
+    </div>
+    <div id="tag"><b>Drag the walls</b> to crush the spikes.<br>Just&nbsp;&#8203;don't squish <i>Bob</i>.</div>
+    <button id="playBtn" class="btn">PLAY</button>
+    <div id="footer">A PLAY VIBE GAMES TITLE</div>
+  </div>
+
+  <div id="deadScr" class="scr hidden">
+    <div id="deadCard">
+      <div id="cause">The spikes got Bob.</div>
+      <div id="causeTip">Pop spikes. Not friends.</div>
+      <div id="finalScore">0</div>
+      <div id="runStats"></div>
+      <div id="newBest">NEW BEST!</div>
+      <div id="deadBtns">
+        <button id="retryBtn" class="btn">RETRY</button>
+        <div style="display:flex;gap:10px;">
+          <button id="shareBtn" class="btn small ghost">SHARE</button>
+          <button id="menuBtn" class="btn small ghost">MENU</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="pauseScr" class="scr hidden">TAP TO RESUME</div>
+  <div id="toast"></div>
+</div>
+
+<script>
+(function(){
+'use strict';
+/* ============================== helpers ============================== */
+const clamp=(v,a,b)=>v<a?a:(v>b?b:v);
+const lerp=(a,b,t)=>a+(b-a)*t;
+const rand=(a,b)=>a+Math.random()*(b-a);
+const TAU=Math.PI*2;
+const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const store={
+  get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v);}catch(e){return d;}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+};
+function vib(ms){try{if(navigator.vibrate)navigator.vibrate(ms);}catch(e){}}
+
+/* ============================== audio ============================== */
+const AudioEng={
+  ctx:null,gain:null,muted:store.get('dsb_mute',false),
+  unlock(){
+    if(this.ctx)  {if(this.ctx.state==='suspended')this.ctx.resume(); return;}
+    try{
+      this.ctx=new (window.AudioContext||window.webkitAudioContext)();
+      this.gain=this.ctx.createGain();
+      this.gain.gain.value=this.muted?0:0.5;
+      this.gain.connect(this.ctx.destination);
+    }catch(e){}
+  },
+  setMuted(m){this.muted=m;store.set('dsb_mute',m);if(this.gain)this.gain.gain.value=m?0:0.5;},
+  tone(o){ // {type,f0,f1,dur,vol,delay}
+    if(!this.ctx||this.muted)return;
+    const t0=this.ctx.currentTime+(o.delay||0);
+    const osc=this.ctx.createOscillator(),g=this.ctx.createGain();
+    osc.type=o.type||'sine';
+    osc.frequency.setValueAtTime(o.f0,t0);
+    osc.frequency.exponentialRampToValueAtTime(Math.max(30,o.f1||o.f0),t0+o.dur);
+    g.gain.setValueAtTime(o.vol,t0);
+    g.gain.exponentialRampToValueAtTime(0.001,t0+o.dur);
+    osc.connect(g);g.connect(this.gain);
+    osc.start(t0);osc.stop(t0+o.dur+0.02);
+  },
+  noise(o){ // {dur,vol,freq,q,delay}
+    if(!this.ctx||this.muted)return;
+    const t0=this.ctx.currentTime+(o.delay||0);
+    const n=Math.floor(this.ctx.sampleRate*o.dur);
+    const buf=this.ctx.createBuffer(1,n,this.ctx.sampleRate);
+    const ch=buf.getChannelData(0);
+    for(let i=0;i<n;i++)ch[i]=(Math.random()*2-1)*(1-i/n);
+    const src=this.ctx.createBufferSource();src.buffer=buf;
+    const bp=this.ctx.createBiquadFilter();bp.type='bandpass';
+    bp.frequency.value=o.freq||800;bp.Q.value=o.q||1;
+    const g=this.ctx.createGain();g.gain.value=o.vol;
+    src.connect(bp);bp.connect(g);g.connect(this.gain);
+    src.start(t0);
+  },
+  pop(sz){ // sz ~ radius
+    const p=clamp(1-(sz-9)/22,0.2,1.2);
+    this.noise({dur:0.1,vol:0.5,freq:500+p*600,q:0.8});
+    this.tone({type:'sine',f0:200+p*180,f1:60,dur:0.16,vol:0.5});
+  },
+  hurt(){this.tone({type:'square',f0:340,f1:140,dur:0.16,vol:0.22});},
+  splat(){this.noise({dur:0.12,vol:0.45,freq:260,q:0.7});this.tone({type:'sine',f0:150,f1:60,dur:0.18,vol:0.35});},
+  gasp(){this.tone({type:'sine',f0:300,f1:640,dur:0.12,vol:0.28});},
+  combo(n){this.tone({type:'sine',f0:430*(1+0.14*Math.min(n,8)),f1:430*(1+0.14*Math.min(n,8))*1.4,dur:0.09,vol:0.3});},
+  ui(){this.tone({type:'sine',f0:520,f1:640,dur:0.07,vol:0.25});},
+  death(){
+    this.noise({dur:0.35,vol:0.6,freq:300,q:0.5});
+    this.tone({type:'sine',f0:392,f1:180,dur:0.5,vol:0.3});
+    this.tone({type:'sine',f0:311,f1:140,dur:0.6,vol:0.25,delay:0.12});
+    this.tone({type:'sine',f0:233,f1:90,dur:0.8,vol:0.25,delay:0.26});
+  }
+};
+
+/* ============================== canvas ============================== */
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+let W=0,H=0,DPR=1;
+let rest={x0:0,y0:0,x1:0,y1:0};   // box at rest (no squeeze)
+let U=1;                          // size unit scale
+const WALL_T=26, MINGAP=12;
+
+function resize(){
+  W=window.innerWidth;H=window.innerHeight;
+  DPR=Math.min(window.devicePixelRatio||1,2.5);
+  cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);
+  cv.style.width=W+'px';cv.style.height=H+'px';
+  const topM=96,botM=64,sideM=30;
+  const bw=Math.min(W-sideM*2,620);
+  rest.x0=(W-bw)/2; rest.x1=rest.x0+bw;
+  rest.y0=topM; rest.y1=Math.max(topM+220,H-botM);
+  U=clamp(Math.min(bw,rest.y1-rest.y0)/360,0.75,1.5);
+}
+window.addEventListener('resize',()=>{
+  resize();
+  if(S.state==='title')resetRun(true); // re-place the demo Bob when the window changes
+});
+resize();
+
+/* ============================== walls ============================== */
+// off = how far the wall has been pushed inward from rest
+const walls={
+  L:{off:0,prev:0,grab:null,axis:'x',dir:1},
+  R:{off:0,prev:0,grab:null,axis:'x',dir:-1},
+  T:{off:0,prev:0,grab:null,axis:'y',dir:1},
+  B:{off:0,prev:0,grab:null,axis:'y',dir:-1}
+};
+const faces=()=>({
+  x0:rest.x0+walls.L.off, x1:rest.x1-walls.R.off,
+  y0:rest.y0+walls.T.off, y1:rest.y1-walls.B.off
+});
+function maxOff(w){
+  const span=(w.axis==='x')?(rest.x1-rest.x0):(rest.y1-rest.y0);
+  const other=(w===walls.L)?walls.R:(w===walls.R)?walls.L:(w===walls.T)?walls.B:walls.T;
+  return Math.max(0,span-MINGAP-other.off);
+}
+function wallFacePos(w){
+  if(w===walls.L)return rest.x0+w.off;
+  if(w===walls.R)return rest.x1-w.off;
+  if(w===walls.T)return rest.y0+w.off;
+  return rest.y1-w.off;
+}
+
+/* ============================== state ============================== */
+const S={state:'title', t:0, score:0, pops:0, combo:0, lastPopT:-9,
+  spawnT:1.2, shakeT:0, shakeAmp:0, hitstop:0, ts:1, dieT:0, cause:'',
+  best:store.get('dsb_best',0), grabbedOnce:store.get('dsb_played',false),
+  paused:false};
+let bob=null, spikes=[], tele=[], parts=[], floaties=[];
+
+const BOB_R=()=>27*U;
+
+function makeBob(cx,cy){
+  const N=16,r=BOB_R(),pts=[];
+  for(let i=0;i<N;i++){
+    const a=i/N*TAU;
+    pts.push({x:cx+Math.cos(a)*r,y:cy+Math.sin(a)*r,ox:cx+Math.cos(a)*r,oy:cy+Math.sin(a)*r});
+  }
+  return {pts,N,r,restLen:2*r*Math.sin(Math.PI/N),restArea:Math.PI*r*r,
+    hearts:3,iframe:0,squishT:0,dead:false,blinkT:rand(1,3),blink:0,
+    wanderT:1,lookX:0,lookY:0,mood:'happy',covered:false,pin:null,gasp:0};
+}
+function centroid(pts){let x=0,y=0;for(const p of pts){x+=p.x;y+=p.y;}return{x:x/pts.length,y:y/pts.length};}
+function polyArea(pts){let a=0;for(let i=0;i<pts.length;i++){const p=pts[i],q=pts[(i+1)%pts.length];a+=p.x*q.y-q.x*p.y;}return Math.abs(a)/2;}
+
+const TYPES={
+  basic:{r:15,spd:[120,175],color:'#ff5470',dark:'#c22045',score:25},
+  mini:{r:9,spd:[210,270],color:'#ff87a8',dark:'#d14a75',score:15},
+  splitter:{r:20,spd:[75,110],color:'#a78bfa',dark:'#6d4fc4',score:40}
+};
+function makeSpike(x,y,type){
+  const T=TYPES[type],a=rand(0,TAU),s=rand(T.spd[0],T.spd[1])*U;
+  return {x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,r:T.r*U,base:s,type,
+    rot:rand(0,TAU),spin:rand(-2,2),popGap:T.r*U*2*0.92+2};
+}
+
+// Title/menu: Bob sits in a fixed, composed spot (centered, below the button).
+// In-game: random spawn anywhere inside the resting box, clear of the walls.
+function pickBobCenter(titleMode){
+  const m=BOB_R()+12*U;
+  if(titleMode){
+    // center Bob in the gap between the PLAY button and the box bottom, so he
+    // never collides with the title block however tall/short the screen is
+    let below=rest.y0+(rest.y1-rest.y0)*0.58; // fallback if button not laid out
+    const btn=document.getElementById('playBtn');
+    if(btn){const r=btn.getBoundingClientRect();if(r.height>0)below=r.bottom;}
+    return {x:(rest.x0+rest.x1)/2, y:clamp((below+rest.y1)/2,rest.y0+m,rest.y1-m)};
+  }
+  return {x:rand(rest.x0+m,rest.x1-m), y:rand(rest.y0+m,rest.y1-m)};
+}
+function resetRun(titleMode){
+  grabs.clear(); // a held wall must not carry into a fresh run
+  for(const k in walls){const w=walls[k];w.grab=null;w.target=undefined;w.off=0;w.prev=0;}
+  const c=pickBobCenter(titleMode);
+  bob=makeBob(c.x,c.y);
+  spikes=[];tele=[];parts=[];floaties=[];
+  S.t=0;S.score=0;S.pops=0;S.combo=0;S.spawnT=0.9;S.hitstop=0;S.ts=1;S.dieT=0;
+  updateHearts();updateScore();
+}
+
+/* ============================== input ============================== */
+const grabs=new Map(); // pointerId -> {w, grip}
+let hintT=0;
+
+function nearestWall(px,py){
+  let best=null,bd=64*Math.max(1,U*0.9);
+  const f=faces();
+  const cand=[
+    [walls.L,Math.abs(px-f.x0),py>=f.y0-46&&py<=f.y1+46],
+    [walls.R,Math.abs(px-f.x1),py>=f.y0-46&&py<=f.y1+46],
+    [walls.T,Math.abs(py-f.y0),px>=f.x0-46&&px<=f.x1+46],
+    [walls.B,Math.abs(py-f.y1),px>=f.x0-46&&px<=f.x1+46]
+  ];
+  for(const [w,d,inSpan] of cand){
+    if(inSpan&&d<bd&&!w.grab){bd=d;best=w;}
+  }
+  return best;
+}
+window.addEventListener('pointerdown',e=>{
+  AudioEng.unlock();
+  if(e.target.closest('button,a,#deadCard'))return;
+  if(S.paused){setPaused(false);return;}
+  const w=nearestWall(e.clientX,e.clientY);
+  if(w){
+    const p=(w.axis==='x')?e.clientX:e.clientY;
+    grabs.set(e.pointerId,{w,grip:p-wallFacePos(w)});
+    w.grab=e.pointerId;
+    if(!S.grabbedOnce){S.grabbedOnce=true;store.set('dsb_played',true);}
+  }
+},{passive:true});
+window.addEventListener('pointermove',e=>{
+  const g=grabs.get(e.pointerId);
+  if(!g)return;
+  const p=(g.w.axis==='x')?e.clientX:e.clientY;
+  const face=p-g.grip;
+  let off;
+  if(g.w===walls.L)off=face-rest.x0;
+  else if(g.w===walls.R)off=rest.x1-face;
+  else if(g.w===walls.T)off=face-rest.y0;
+  else off=rest.y1-face;
+  g.w.target=clamp(off,0,maxOff(g.w));
+},{passive:true});
+function releasePointer(e){
+  const g=grabs.get(e.pointerId);
+  if(g){g.w.grab=null;g.w.target=undefined;grabs.delete(e.pointerId);}
+}
+window.addEventListener('pointerup',releasePointer,{passive:true});
+window.addEventListener('pointercancel',releasePointer,{passive:true});
+cv.addEventListener('touchmove',e=>e.preventDefault(),{passive:false});
+cv.addEventListener('contextmenu',e=>e.preventDefault());
+
+/* ============================== game logic ============================== */
+function spawnDirector(dt){
+  const t=S.t;
+  const interval=Math.max(0.65,2.1-t*0.016);
+  const maxCount=Math.min(9,2+Math.floor(t/12));
+  S.spawnT-=dt;
+  if(S.spawnT<=0&&spikes.length+tele.length<maxCount){
+    S.spawnT=interval*rand(0.8,1.25);
+    let type='basic';
+    const roll=Math.random();
+    if(t>45&&roll<0.18)type='mini';
+    else if(t>25&&roll<0.42)type='splitter';
+    const T=TYPES[type],r=T.r*U,f=faces();
+    const x0=f.x0+r+10,x1=f.x1-r-10,y0=f.y0+r+10,y1=f.y1-r-10;
+    if(x1<=x0||y1<=y0)return;
+    const bc=centroid(bob.pts);
+    for(let i=0;i<14;i++){
+      const x=rand(x0,x1),y=rand(y0,y1);
+      if(Math.hypot(x-bc.x,y-bc.y)<bob.r+r+70*U)continue;
+      let close=false;
+      for(const tl of tele)if(Math.hypot(x-tl.x,y-tl.y)<50){close=true;break;}
+      if(close)continue;
+      tele.push({x,y,r,type,t:0});
+      break;
+    }
+  }
+  for(let i=tele.length-1;i>=0;i--){
+    tele[i].t+=dt;
+    if(tele[i].t>=0.8){
+      spikes.push(makeSpike(tele[i].x,tele[i].y,tele[i].type));
+      tele.splice(i,1);
+    }
+  }
+}
+
+function popSpike(s,idx){
+  spikes.splice(idx,1);
+  const T=TYPES[s.type];
+  const now=performance.now()/1000;
+  S.combo=(now-S.lastPopT<0.5)?S.combo+1:1;
+  S.lastPopT=now;
+  const pts=T.score*S.combo;
+  S.score+=pts;S.pops++;
+  goo(s.x,s.y,T.color,s.type==='mini'?8:14,s.r);
+  floaties.push({x:s.x,y:s.y,txt:'+'+pts,color:'#fff3d9',t:0});
+  if(S.combo>=2)floaties.push({x:s.x,y:s.y-26,txt:S.combo+'x SQUISH!',color:'#53e0ff',t:0,big:true});
+  S.hitstop=0.055;S.shakeT=0.18;S.shakeAmp=Math.min(9,3+S.combo*1.5);
+  AudioEng.pop(s.r/U);if(S.combo>=2)AudioEng.combo(S.combo);
+  vib(S.combo>=3?[15,30,15]:18);
+  if(s.type==='splitter'){
+    const a=rand(0,TAU);
+    for(const sg of[1,-1]){
+      const m=makeSpike(s.x+Math.cos(a)*sg*8,s.y+Math.sin(a)*sg*8,'mini');
+      const sp=m.base*1.2;
+      m.vx=Math.cos(a)*sg*sp;m.vy=Math.sin(a)*sg*sp;
+      spikes.push(m);
+    }
+  }
+  updateScore();
+}
+
+function goo(x,y,color,n,r){
+  for(let i=0;i<n;i++){
+    const a=rand(0,TAU),s=rand(40,240)*U;
+    parts.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,r:rand(2,r*0.45),
+      color:Math.random()<0.25?'#fff3d9':color,t:0,life:rand(0.4,0.8)});
+  }
+  parts.push({x,y,ring:true,t:0,life:0.35,r:r,color});
+}
+
+function hurtBob(sp){
+  if(bob.iframe>0||bob.dead)return;
+  bob.hearts--;bob.iframe=1.2;
+  updateHearts();
+  AudioEng.hurt();vib(50);
+  S.shakeT=0.25;S.shakeAmp=7;
+  const c=centroid(bob.pts);
+  const dx=c.x-sp.x,dy=c.y-sp.y,d=Math.hypot(dx,dy)||1;
+  sp.vx=-dx/d*Math.hypot(sp.vx,sp.vy)*1.05;
+  sp.vy=-dy/d*Math.hypot(sp.vx,sp.vy)*1.05;
+  for(const p of bob.pts){p.ox-=dx/d*3;p.oy-=dy/d*3;}
+  if(bob.hearts<=0)killBob('spikes');
+}
+
+function killBob(cause){
+  if(bob.dead)return;
+  bob.dead=true;S.cause=cause;S.state='dying';S.dieT=0;
+  const f=faces(),c0=bob.covered?bob.pin:centroid(bob.pts);
+  // goo squirts out from under the wall into the visible interior
+  const c={x:clamp(c0.x,f.x0+10,f.x1-10),y:clamp(c0.y,f.y0+10,f.y1-10)};
+  goo(c.x,c.y,'#74f2b6',26,bob.r*1.4);
+  parts.push({x:c.x-8,y:c.y,eye:true,vx:rand(-40,-10),vy:rand(-90,-50),t:0,life:1.6,r:7*U});
+  parts.push({x:c.x+8,y:c.y,eye:true,vx:rand(10,40),vy:rand(-90,-50),t:0,life:1.6,r:7*U});
+  AudioEng.death();vib([60,40,120]);
+  S.shakeT=0.4;S.shakeAmp=11;
+}
+
+/* ---------- physics ---------- */
+function physStep(h){
+  const f=faces();
+  const gx=f.x1-f.x0,gy=f.y1-f.y0;
+  const velL=(walls.L.off-walls.L.prev)/h,velR=(walls.R.off-walls.R.prev)/h;
+  const velT=(walls.T.off-walls.T.prev)/h,velB=(walls.B.off-walls.B.prev)/h;
+
+  // spikes
+  for(const s of spikes){
+    s.x+=s.vx*h;s.y+=s.vy*h;s.rot+=s.spin*h;
+    const REST=0.98;
+    if(s.x-s.r<f.x0){s.x=f.x0+s.r;s.vx=Math.abs(s.vx)*REST+Math.max(0,velL)*0.8;}
+    if(s.x+s.r>f.x1){s.x=f.x1-s.r;s.vx=-Math.abs(s.vx)*REST-Math.max(0,velR)*0.8;}
+    if(s.y-s.r<f.y0){s.y=f.y0+s.r;s.vy=Math.abs(s.vy)*REST+Math.max(0,velT)*0.8;}
+    if(s.y+s.r>f.y1){s.y=f.y1-s.r;s.vy=-Math.abs(s.vy)*REST-Math.max(0,velB)*0.8;}
+    // renormalize speed gently toward base
+    const sp=Math.hypot(s.vx,s.vy);
+    if(sp>1){const k=lerp(sp,s.base,0.02)/sp;s.vx*=k;s.vy*=k;}
+  }
+  // spike-spike
+  for(let i=0;i<spikes.length;i++)for(let j=i+1;j<spikes.length;j++){
+    const a=spikes[i],b=spikes[j];
+    let dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy);
+    const min=a.r+b.r;
+    if(d<min&&d>0.001){
+      dx/=d;dy/=d;
+      const pen=(min-d)/2;
+      a.x-=dx*pen;a.y-=dy*pen;b.x+=dx*pen;b.y+=dy*pen;
+      const av=a.vx*dx+a.vy*dy,bv=b.vx*dx+b.vy*dy;
+      a.vx+=(bv-av)*dx;a.vy+=(bv-av)*dy;
+      b.vx+=(av-bv)*dx;b.vy+=(av-bv)*dy;
+    }
+  }
+
+  // bob (soft-body sim pauses while he's flattened under a wall)
+  if(bob&&!bob.dead&&!bob.covered){
+    for(const p of bob.pts){
+      const nx=p.x+(p.x-p.ox)*0.985,ny=p.y+(p.y-p.oy)*0.985;
+      p.ox=p.x;p.oy=p.y;p.x=nx;p.y=ny;
+    }
+    for(let it=0;it<4;it++){
+      const N=bob.N;
+      for(let i=0;i<N;i++){
+        const p=bob.pts[i],q=bob.pts[(i+1)%N];
+        let dx=q.x-p.x,dy=q.y-p.y,d=Math.hypot(dx,dy)||0.001;
+        const diff=(d-bob.restLen)/d*0.5;
+        p.x+=dx*diff;p.y+=dy*diff;q.x-=dx*diff;q.y-=dy*diff;
+      }
+      const c=centroid(bob.pts);
+      for(const p of bob.pts){
+        let dx=p.x-c.x,dy=p.y-c.y,d=Math.hypot(dx,dy)||0.001;
+        const diff=(d-bob.r)/d;
+        p.x-=dx*diff*0.16;p.y-=dy*diff*0.16;
+      }
+      const A=polyArea(bob.pts);
+      if(A<bob.restArea){
+        const push=(bob.restArea-A)/bob.restArea*bob.r*0.32;
+        for(const p of bob.pts){
+          let dx=p.x-c.x,dy=p.y-c.y,d=Math.hypot(dx,dy)||0.001;
+          p.x+=dx/d*push;p.y+=dy/d*push;
+        }
+      }
+      // Bob is contained by the BOX AT REST, not the squeezed walls —
+      // moving walls slide over him instead of bulldozing him around
+      for(const p of bob.pts){
+        if(p.x<rest.x0+2)p.x=rest.x0+2;
+        if(p.x>rest.x1-2)p.x=rest.x1-2;
+        if(p.y<rest.y0+2)p.y=rest.y0+2;
+        if(p.y>rest.y1-2)p.y=rest.y1-2;
+      }
+    }
+    // spikes push bob's points
+    for(const s of spikes){
+      for(const p of bob.pts){
+        let dx=p.x-s.x,dy=p.y-s.y,d=Math.hypot(dx,dy);
+        const min=s.r+3;
+        if(d<min&&d>0.001){p.x=s.x+dx/d*min;p.y=s.y+dy/d*min;}
+      }
+    }
+  }
+}
+
+function updatePlay(dt){
+  S.t+=dt;
+  S.score+=dt*10;
+  spawnDirector(dt);
+
+  // crushing
+  const f=faces();
+  const gx=f.x1-f.x0,gy=f.y1-f.y0;
+  for(let i=spikes.length-1;i>=0;i--){
+    const s=spikes[i];
+    if(gx<s.popGap||gy<s.popGap)popSpike(s,i);
+  }
+
+  if(bob&&!bob.dead){
+    bob.iframe=Math.max(0,bob.iframe-dt);
+    if(!bob.covered){
+      const c=centroid(bob.pts);
+      // contact damage (only while out in the open). Reach is a full radius,
+      // so a graze counts — a spike touching Bob's outline costs a heart.
+      for(const s of spikes){
+        if(Math.hypot(c.x-s.x,c.y-s.y)<s.r+bob.r){hurtBob(s);break;}
+      }
+      // Bob is scared: gentle drift away from the nearest spike
+      const ns=nearestSpike(c);
+      if(ns){
+        const d=Math.hypot(ns.x-c.x,ns.y-c.y),R=130*U;
+        if(d<R&&d>1){
+          const k=(1-d/R)*0.022*U,ax=(c.x-ns.x)/d*k,ay=(c.y-ns.y)/d*k;
+          for(const p of bob.pts){p.ox-=ax;p.oy-=ay;}
+        }
+      }
+    }
+    // slow-mo drama while he's running out of breath
+    const target=(bob.covered&&bob.squishT>0.3)?0.45:1;
+    S.ts+=(target-S.ts)*Math.min(1,dt*8);
+  }
+  updateScore();
+}
+
+function updateCommon(dt){
+  // walls ease toward grab target or rest
+  for(const k in walls){
+    const w=walls[k];
+    w.prev=w.off;
+    const desired=(w.grab!==null&&w.target!==undefined)?w.target:0;
+    const rate=(w.grab!==null)?28:10;
+    w.off+=(desired-w.off)*Math.min(1,dt*rate);
+    w.off=clamp(w.off,0,maxOff(w));
+  }
+  // walls pass over Bob: when a face crosses his center he splats flat
+  // under the slab (safe from spikes, but smothering); he pops back where
+  // he was once the wall retreats
+  if(bob&&!bob.dead){
+    const f=faces();
+    if(!bob.covered){
+      const c=centroid(bob.pts);
+      if(f.x0>c.x||f.x1<c.x||f.y0>c.y||f.y1<c.y){
+        bob.covered=true;
+        bob.pin={x:clamp(c.x,rest.x0+bob.r*0.7,rest.x1-bob.r*0.7),
+                 y:clamp(c.y,rest.y0+bob.r*0.7,rest.y1-bob.r*0.7)};
+        AudioEng.splat();vib(12);
+      }
+    }else{
+      const p=bob.pin,m=8;
+      // keep the pin inside the box even if the window resized mid-cover,
+      // so uncovering always stays possible
+      p.x=clamp(p.x,rest.x0+bob.r*0.7,rest.x1-bob.r*0.7);
+      p.y=clamp(p.y,rest.y0+bob.r*0.7,rest.y1-bob.r*0.7);
+      if(f.x0<=p.x-m&&f.x1>=p.x+m&&f.y0<=p.y-m&&f.y1>=p.y+m){
+        bob.covered=false;
+        for(let i=0;i<bob.N;i++){
+          const a=i/bob.N*TAU,pt=bob.pts[i];
+          pt.x=pt.ox=p.x+Math.cos(a)*bob.r;
+          pt.y=pt.oy=p.y+Math.sin(a)*bob.r;
+        }
+        bob.gasp=0.7;
+        goo(p.x,p.y,'#74f2b6',6,bob.r*0.5);
+        AudioEng.gasp();
+      }
+    }
+    if(bob.covered){
+      bob.squishT+=dt/2.5;
+      if(bob.squishT>=1&&S.state==='play')killBob('squished');
+    }else{
+      bob.squishT=Math.max(0,bob.squishT-dt/1.0);
+    }
+    bob.gasp=Math.max(0,bob.gasp-dt);
+  }
+  // physics substeps
+  const steps=2,h=dt/steps;
+  if(h>0)for(let i=0;i<steps;i++)physStep(h);
+
+  // bob idle life
+  if(bob&&!bob.dead){
+    bob.blinkT-=dt;
+    if(bob.blinkT<=0){bob.blink=0.12;bob.blinkT=rand(1.4,3.8);}
+    bob.blink=Math.max(0,bob.blink-dt);
+    bob.wanderT-=dt;
+    if(bob.wanderT<=0&&!bob.covered){
+      bob.wanderT=rand(1.2,2.8);
+      const a=rand(0,TAU),m=rand(0.4,1.4)*U;
+      for(const p of bob.pts){p.ox-=Math.cos(a)*m;p.oy-=Math.sin(a)*m;}
+    }
+  }
+  // particles
+  for(let i=parts.length-1;i>=0;i--){
+    const p=parts[i];p.t+=dt;
+    if(p.t>=p.life){parts.splice(i,1);continue;}
+    if(!p.ring){
+      p.x+=p.vx*dt;p.y+=p.vy*dt;
+      p.vx*=Math.pow(0.05,dt);p.vy*=Math.pow(0.05,dt);
+      if(p.eye){p.vy+=30*dt;}
+    }
+  }
+  for(let i=floaties.length-1;i>=0;i--){
+    const fl=floaties[i];fl.t+=dt;
+    if(fl.t>1)floaties.splice(i,1);
+  }
+  S.shakeT=Math.max(0,S.shakeT-dt);
+}
+
+/* ============================== render ============================== */
+function draw(){
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  // shake
+  if(S.shakeT>0&&!RM){
+    const a=S.shakeAmp*S.shakeT;
+    ctx.translate(rand(-a,a),rand(-a,a));
+  }
+  // bg
+  ctx.fillStyle='#171233';
+  ctx.fillRect(-20,-20,W+40,H+40);
+  const f=faces();
+
+  // interior
+  roundRect(f.x0,f.y0,f.x1-f.x0,f.y1-f.y0,8);
+  ctx.fillStyle='#262052';ctx.fill();
+  // dot grid (fixed to rest box, clipped to interior)
+  ctx.save();
+  roundRect(f.x0,f.y0,f.x1-f.x0,f.y1-f.y0,8);ctx.clip();
+  ctx.fillStyle='rgba(255,243,217,0.06)';
+  const step=46*U;
+  for(let x=rest.x0+step/2;x<rest.x1;x+=step)
+    for(let y=rest.y0+step/2;y<rest.y1;y+=step){
+      ctx.beginPath();ctx.arc(x,y,2,0,TAU);ctx.fill();
+    }
+
+  // telegraphs
+  for(const t of tele){
+    const k=t.t/0.8;
+    const T=TYPES[t.type];
+    ctx.strokeStyle=T.color;ctx.globalAlpha=0.3+k*0.6;ctx.lineWidth=3;
+    ctx.beginPath();ctx.arc(t.x,t.y,t.r*(1.9-k*0.9),0,TAU);ctx.stroke();
+    ctx.globalAlpha=k*0.5;ctx.fillStyle=T.color;
+    ctx.beginPath();ctx.arc(t.x,t.y,t.r*k*0.8,0,TAU);ctx.fill();
+    ctx.globalAlpha=1;
+  }
+
+  // particles under actors
+  for(const p of parts){
+    const k=1-p.t/p.life;
+    if(p.ring){
+      ctx.strokeStyle=p.color;ctx.globalAlpha=k*0.9;ctx.lineWidth=4*k+1;
+      ctx.beginPath();ctx.arc(p.x,p.y,p.r*(1+(1-k)*2.2),0,TAU);ctx.stroke();
+    }else if(p.eye){
+      ctx.globalAlpha=Math.min(1,k*2);
+      ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,TAU);ctx.fill();
+      ctx.fillStyle='#1b1b2e';ctx.beginPath();ctx.arc(p.x,p.y+p.r*0.2,p.r*0.45,0,TAU);ctx.fill();
+    }else{
+      ctx.globalAlpha=k;ctx.fillStyle=p.color;
+      ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,TAU);ctx.fill();
+    }
+    ctx.globalAlpha=1;
+  }
+
+  // spikes
+  const gx=f.x1-f.x0,gy=f.y1-f.y0;
+  for(const s of spikes)drawSpike(s,gx,gy);
+
+  // bob (a partially-overrun Bob is clipped by the interior, which reads
+  // as him disappearing under the slab; fully covered Bob is drawn on top
+  // of the walls as a splat)
+  if(bob&&!bob.dead&&!bob.covered)drawBob(gx,gy);
+
+  // floaties
+  for(const fl of floaties){
+    const k=fl.t;
+    ctx.globalAlpha=1-k;
+    ctx.font=(fl.big?'700 22px':'600 18px')+' Fredoka, sans-serif';
+    ctx.textAlign='center';ctx.fillStyle=fl.color;
+    ctx.fillText(fl.txt,fl.x,fl.y-k*40);
+    ctx.globalAlpha=1;
+  }
+  ctx.restore(); // clip
+
+  drawWalls(f);
+  if(bob&&!bob.dead&&bob.covered)drawBobCovered();
+  drawHints(f);
+}
+
+function roundRect(x,y,w,h,r){
+  r=Math.min(r,Math.abs(w)/2,Math.abs(h)/2);
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();
+}
+
+function drawWalls(f){
+  const t=WALL_T;
+  ctx.fillStyle='#ffc44d';
+  // slabs stretch from the box's resting edge to the current face, so a
+  // pushed-in wall visually covers everything it has swept over (Bob included)
+  roundRect(rest.x0-t,rest.y0-t,(f.x0-rest.x0)+t,(rest.y1-rest.y0)+t*2,9);ctx.fill();
+  roundRect(f.x1,rest.y0-t,(rest.x1-f.x1)+t,(rest.y1-rest.y0)+t*2,9);ctx.fill();
+  roundRect(rest.x0-t,rest.y0-t,(rest.x1-rest.x0)+t*2,(f.y0-rest.y0)+t,9);ctx.fill();
+  roundRect(rest.x0-t,f.y1,(rest.x1-rest.x0)+t*2,(rest.y1-f.y1)+t,9);ctx.fill();
+  // crushing-face highlights
+  ctx.fillStyle='#ffe08a';
+  ctx.fillRect(f.x0-3,f.y0,3,f.y1-f.y0);
+  ctx.fillRect(f.x1,f.y0,3,f.y1-f.y0);
+  ctx.fillRect(f.x0,f.y0-3,f.x1-f.x0,3);
+  ctx.fillRect(f.x0,f.y1,f.x1-f.x0,3);
+  // grip pips
+  ctx.fillStyle='#b57614';
+  const cx=(f.x0+f.x1)/2,cy=(f.y0+f.y1)/2;
+  for(const d of[-16,0,16]){
+    pip(f.x0-t/2,cy+d);pip(f.x1+t/2,cy+d);pip(cx+d,f.y0-t/2);pip(cx+d,f.y1+t/2);
+  }
+}
+function pip(x,y){ctx.beginPath();ctx.arc(x,y,3,0,TAU);ctx.fill();}
+
+function drawSpike(s,gx,gy){
+  let sx=clamp(gx/(s.r*2),0.55,1),sy=clamp(gy/(s.r*2),0.55,1);
+  if(sx<1)sy=Math.min(1.25,sy/Math.sqrt(sx));
+  else if(sy<1)sx=Math.min(1.25,sx/Math.sqrt(sy));
+  const T=TYPES[s.type];
+  ctx.save();ctx.translate(s.x,s.y);ctx.scale(sx,sy);
+  ctx.save();ctx.rotate(s.rot);
+  ctx.beginPath();
+  const n=10;
+  for(let k=0;k<n*2;k++){
+    const a=k*Math.PI/n,r=(k%2)?s.r*1.42:s.r*0.95;
+    const px=Math.cos(a)*r,py=Math.sin(a)*r;
+    k?ctx.lineTo(px,py):ctx.moveTo(px,py);
+  }
+  ctx.closePath();
+  ctx.fillStyle=T.dark;ctx.fill();
+  ctx.beginPath();ctx.arc(0,0,s.r*0.82,0,TAU);
+  ctx.fillStyle=T.color;ctx.fill();
+  ctx.restore();
+  // angry eyes (upright)
+  const bc=bob&&!bob.dead?centroid(bob.pts):{x:s.x,y:s.y-1};
+  const la=Math.atan2(bc.y-s.y,bc.x-s.x);
+  const ex=Math.cos(la)*s.r*0.12,ey=Math.sin(la)*s.r*0.12;
+  for(const sd of[-1,1]){
+    ctx.fillStyle='#fff';
+    ctx.beginPath();ctx.ellipse(sd*s.r*0.34,-s.r*0.08,s.r*0.2,s.r*0.24,0,0,TAU);ctx.fill();
+    ctx.fillStyle='#1b1b2e';
+    ctx.beginPath();ctx.arc(sd*s.r*0.34+ex,-s.r*0.08+ey,s.r*0.1,0,TAU);ctx.fill();
+    // brow
+    ctx.strokeStyle='#1b1b2e';ctx.lineWidth=Math.max(1.5,s.r*0.12);ctx.lineCap='round';
+    ctx.beginPath();
+    ctx.moveTo(sd*s.r*0.55,-s.r*0.42);ctx.lineTo(sd*s.r*0.12,-s.r*0.26);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawBob(gx,gy){
+  const pts=bob.pts,N=bob.N;
+  const flash=bob.iframe>0&&Math.floor(bob.iframe*12)%2===0;
+  // body: smooth closed curve
+  ctx.beginPath();
+  let mx=(pts[N-1].x+pts[0].x)/2,my=(pts[N-1].y+pts[0].y)/2;
+  ctx.moveTo(mx,my);
+  for(let i=0;i<N;i++){
+    const p=pts[i],q=pts[(i+1)%N];
+    ctx.quadraticCurveTo(p.x,p.y,(p.x+q.x)/2,(p.y+q.y)/2);
+  }
+  ctx.closePath();
+  ctx.fillStyle=flash?'#ffffff':'#74f2b6';
+  ctx.fill();
+  ctx.strokeStyle='#157a4f';ctx.lineWidth=3.5;ctx.stroke();
+
+  const c=centroid(pts);
+  // bbox squish factor for expressions
+  let minX=1e9,maxX=-1e9,minY=1e9,maxY=-1e9;
+  for(const p of pts){minX=Math.min(minX,p.x);maxX=Math.max(maxX,p.x);minY=Math.min(minY,p.y);maxY=Math.max(maxY,p.y);}
+  const squish=clamp(1-Math.min(maxX-minX,maxY-minY)/(bob.r*2),0,1);
+  const panic=bob.squishT>0.3||squish>0.32;
+  const worry=panic||squish>0.15||nearestSpikeDist(c)<150*U;
+
+  // eyes look at nearest spike
+  let lx=0,ly=0;
+  const ns=nearestSpike(c);
+  if(ns){const d=Math.hypot(ns.x-c.x,ns.y-c.y)||1;lx=(ns.x-c.x)/d;ly=(ns.y-c.y)/d;}
+  bob.lookX=lerp(bob.lookX,lx,0.1);bob.lookY=lerp(bob.lookY,ly,0.1);
+
+  const r=bob.r,bw=maxX-minX,bh=maxY-minY;
+  const eyeY=c.y-Math.min(r*0.18,bh*0.12),eyeDX=Math.min(r*0.34,bw*0.22);
+  const eyeH=(bob.blink>0)?0.12:(panic?1.25:(worry?1.05:1));
+  for(const sd of[-1,1]){
+    ctx.fillStyle='#fff';
+    ctx.beginPath();ctx.ellipse(c.x+sd*eyeDX,eyeY,Math.min(r*0.19,bw*0.13),Math.min(r*0.24*eyeH*(1-squish*0.5),bh*0.17),0,0,TAU);ctx.fill();
+    if(bob.blink<=0){
+      ctx.fillStyle='#1b1b2e';
+      ctx.beginPath();
+      ctx.arc(c.x+sd*eyeDX+bob.lookX*r*0.07,eyeY+bob.lookY*r*0.07,r*(panic?0.06:0.1),0,TAU);
+      ctx.fill();
+    }
+  }
+  // mouth
+  ctx.strokeStyle='#157a4f';ctx.lineWidth=3;ctx.lineCap='round';
+  ctx.beginPath();
+  const myy=c.y+Math.min(r*0.22,bh*0.15),mw=Math.min(r*0.28,bw*0.2);
+  if(panic){ // wavy scream
+    ctx.moveTo(c.x-mw,myy);
+    ctx.quadraticCurveTo(c.x-mw/2,myy+r*0.16,c.x,myy);
+    ctx.quadraticCurveTo(c.x+mw/2,myy-r*0.16,c.x+mw,myy);
+  }else if(bob.gasp>0){ // big gulp of air after being uncovered
+    ctx.arc(c.x,myy,Math.min(r*0.16,bw*0.12),0,TAU);
+  }else if(worry){ // small o
+    ctx.arc(c.x,myy,Math.min(r*0.09,bw*0.08),0,TAU);
+  }else{ // smile
+    ctx.arc(c.x,myy-r*0.05,Math.min(r*0.22,bw*0.16),0.25*Math.PI,0.75*Math.PI);
+  }
+  ctx.stroke();
+  // sweat when panicking
+  if(panic&&!RM){
+    ctx.fillStyle='#9bdcff';
+    const t=performance.now()/1000%0.7/0.7;
+    ctx.globalAlpha=1-t;
+    ctx.beginPath();ctx.arc(c.x-r*0.75,c.y-r*0.7-t*18,3.2,0,TAU);ctx.fill();
+    ctx.globalAlpha=1;
+  }
+}
+function drawBobCovered(){
+  const p=bob.pin,r=bob.r,k=clamp(bob.squishT,0,1);
+  // bulge shadow on the slab
+  ctx.fillStyle='rgba(120,72,0,0.28)';
+  ctx.beginPath();ctx.ellipse(p.x,p.y,r*1.34,r*1.14,0,0,TAU);ctx.fill();
+  // Bob, flattened under the wall like jelly under glass
+  ctx.fillStyle='#8bf4c0';
+  ctx.strokeStyle='#157a4f';ctx.lineWidth=3;
+  ctx.beginPath();ctx.ellipse(p.x,p.y,r*1.22,r*1.02,0,0,TAU);ctx.fill();ctx.stroke();
+  // breath ring — empties as he smothers
+  ctx.strokeStyle='rgba(83,224,255,0.9)';ctx.lineWidth=3.5;ctx.lineCap='round';
+  ctx.beginPath();ctx.arc(p.x,p.y,r*1.48,-Math.PI/2,-Math.PI/2+TAU*(1-k));ctx.stroke();
+  // pressed face
+  const panic=k>0.45;
+  ctx.strokeStyle='#157a4f';ctx.lineWidth=3;ctx.lineCap='round';
+  for(const sd of[-1,1]){
+    ctx.beginPath();
+    if(panic){ // >_< eyes
+      ctx.moveTo(p.x+sd*r*0.42,p.y-r*0.3);ctx.lineTo(p.x+sd*r*0.18,p.y-r*0.16);
+      ctx.moveTo(p.x+sd*r*0.42,p.y-r*0.02);ctx.lineTo(p.x+sd*r*0.18,p.y-r*0.16);
+    }else{ // squeezed-shut arcs
+      ctx.moveTo(p.x+sd*r*0.4,p.y-r*0.18);
+      ctx.quadraticCurveTo(p.x+sd*r*0.28,p.y-r*0.3,p.x+sd*r*0.16,p.y-r*0.18);
+    }
+    ctx.stroke();
+  }
+  ctx.beginPath();
+  ctx.moveTo(p.x-r*0.26,p.y+r*0.28);
+  ctx.quadraticCurveTo(p.x-r*0.09,p.y+r*(panic?0.44:0.34),p.x+r*0.04,p.y+r*0.28);
+  ctx.quadraticCurveTo(p.x+r*0.17,p.y+r*(panic?0.14:0.24),p.x+r*0.26,p.y+r*0.28);
+  ctx.stroke();
+  if(panic&&!RM){
+    const t=performance.now()/1000%0.6/0.6;
+    ctx.globalAlpha=1-t;ctx.fillStyle='#9bdcff';
+    ctx.beginPath();ctx.arc(p.x-r*0.9,p.y-r*0.8-t*16,3,0,TAU);ctx.fill();
+    ctx.globalAlpha=1;
+  }
+}
+function nearestSpike(c){
+  let best=null,bd=1e9;
+  for(const s of spikes){const d=Math.hypot(s.x-c.x,s.y-c.y);if(d<bd){bd=d;best=s;}}
+  return best;
+}
+function nearestSpikeDist(c){const s=nearestSpike(c);return s?Math.hypot(s.x-c.x,s.y-c.y):1e9;}
+
+function drawHints(f){
+  if(S.state!=='play'||S.grabbedOnce||S.t>8)return;
+  hintT+=0.016;
+  const k=(Math.sin(hintT*4)+1)/2;
+  ctx.fillStyle='rgba(255,243,217,'+(0.5+k*0.5)+')';
+  ctx.font='600 16px Fredoka, sans-serif';ctx.textAlign='center';
+  const cy=(f.y0+f.y1)/2;
+  // chevrons
+  for(const [x,dir] of[[f.x0+18+k*10,1],[f.x1-18-k*10,-1]]){
+    ctx.beginPath();
+    ctx.moveTo(x-6*dir,cy-11);ctx.lineTo(x+6*dir,cy);ctx.lineTo(x-6*dir,cy+11);
+    ctx.strokeStyle='rgba(255,243,217,'+(0.5+k*0.5)+')';ctx.lineWidth=4;ctx.lineCap='round';ctx.lineJoin='round';
+    ctx.stroke();
+  }
+  ctx.fillText('drag the walls!',(f.x0+f.x1)/2,cy-96*U);
+}
+
+/* ============================== UI ============================== */
+const el=id=>document.getElementById(id);
+const hudEl=el('hud'),scoreEl=el('score'),bestEl=el('best'),heartsEl=el('hearts');
+const titleScr=el('titleScr'),deadScr=el('deadScr'),pauseScr=el('pauseScr');
+
+function updateScore(){scoreEl.textContent=Math.floor(S.score);}
+function updateBest(){bestEl.textContent='BEST '+Math.floor(S.best);}
+function updateHearts(){
+  const spans=heartsEl.children;
+  for(let i=0;i<3;i++)spans[i].classList.toggle('off',!bob||bob.hearts<=i);
+}
+function showToast(msg){
+  const t=el('toast');t.textContent=msg;t.classList.add('show');
+  clearTimeout(showToast._t);showToast._t=setTimeout(()=>t.classList.remove('show'),1800);
+}
+
+const TIPS=['Pop spikes. Not friends.','Quick squeezes. Gentle heart.','Bob forgives you. Probably.',
+  'The walls giveth, the walls squisheth.','Splitters split. Plan accordingly.','Bob believed in you.',
+  "Bob can't breathe under there.",'Tuck Bob under a wall. Then purge.'];
+
+function startRun(){
+  resetRun(false); // random spawn anywhere in the box
+  S.state='play';
+  titleScr.classList.add('hidden');deadScr.classList.add('hidden');
+  hudEl.classList.remove('hudHidden');
+  AudioEng.ui();
+}
+function showDead(){
+  S.state='dead';
+  const sc=Math.floor(S.score);
+  el('cause').textContent=S.cause==='squished'?'You squished Bob.':'The spikes got Bob.';
+  el('causeTip').textContent=TIPS[Math.floor(Math.random()*TIPS.length)];
+  el('finalScore').textContent=sc;
+  el('runStats').textContent='survived '+S.t.toFixed(1)+'s · '+S.pops+' spikes popped';
+  const nb=sc>S.best;
+  if(nb){S.best=sc;store.set('dsb_best',S.best);updateBest();}
+  el('newBest').classList.toggle('show',nb);
+  deadScr.classList.remove('hidden');
+}
+function toMenu(){
+  S.state='title';
+  deadScr.classList.add('hidden');titleScr.classList.remove('hidden');
+  hudEl.classList.add('hudHidden');
+  resetRun(true);
+}
+function setPaused(p){
+  S.paused=p;
+  pauseScr.classList.toggle('hidden',!p);
+}
+
+el('playBtn').addEventListener('click',()=>startRun());
+el('retryBtn').addEventListener('click',()=>startRun());
+el('menuBtn').addEventListener('click',()=>{AudioEng.ui();toMenu();});
+el('shareBtn').addEventListener('click',async()=>{
+  AudioEng.ui();
+  const sc=Math.floor(S.score);
+  const text='I protected Bob for '+S.t.toFixed(1)+'s ('+S.pops+' spikes popped) in DON’T SQUISH BOB — can you beat '+sc+'?';
+  const url=location.href;
+  try{
+    if(navigator.share){await navigator.share({title:'Don’t Squish Bob',text,url});return;}
+  }catch(e){if(e&&e.name==='AbortError')return;}
+  try{await navigator.clipboard.writeText(text+' '+url);showToast('Copied to clipboard!');}
+  catch(e){showToast('Sharing not available here');}
+});
+const sndBtn=el('sndBtn');
+function syncSnd(){sndBtn.textContent=AudioEng.muted?'\u{1F507}':'\u{1F50A}';}
+sndBtn.addEventListener('click',()=>{AudioEng.unlock();AudioEng.setMuted(!AudioEng.muted);syncSnd();});
+syncSnd();updateBest();
+
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden&&S.state==='play')setPaused(true);
+});
+
+/* ============================== main loop ============================== */
+let last=performance.now();
+function frame(now){
+  requestAnimationFrame(frame);
+  let raw=(now-last)/1000;last=now;
+  raw=Math.min(raw,0.05);
+  if(S.paused){draw();return;}
+
+  let dt=raw;
+  if(S.state==='play'){
+    if(S.hitstop>0){S.hitstop-=raw;dt*=0.08;}
+    dt*=S.ts;
+  }
+
+  if(S.state==='title'){
+    // sandbox: bob invincible, no spikes
+    if(bob){bob.squishT=0;bob.dead=false;bob.hearts=Math.max(bob.hearts,3);}
+    updateCommon(dt);
+  }else if(S.state==='play'){
+    updateCommon(dt);
+    updatePlay(dt);
+  }else if(S.state==='dying'){
+    updateCommon(dt*0.45);
+    S.dieT+=raw;
+    if(S.dieT>1.1)showDead();
+  }else if(S.state==='dead'){
+    updateCommon(dt);
+  }
+  draw();
+}
+resetRun(true);
+requestAnimationFrame(frame);
+// debug handle for automated playtests (harmless in production)
+window.DSB={S,walls,faces,startRun,
+  get spikes(){return spikes},get tele(){return tele},get bob(){return bob}};
+})();
+</script>
+</body>
+</html>

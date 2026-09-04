@@ -333,6 +333,12 @@
   .game-card.dodge { --card-accent: #47d4ff; }
   .game-card.split { --card-accent: #ff4747; }
   .game-card.orbit { --card-accent: #7b2fff; }
+  .game-card.squish { --card-accent: #74f2b6; }
+
+  /* Bob's box is a tall portrait board — letterbox it rather than cropping
+     away most of the play area the way a 16:9 cover crop would. */
+  .game-card.squish .game-preview { background: #171233; }
+  .game-card.squish .game-preview img { object-fit: contain; }
 
   .game-card::before {
     content: '';
@@ -599,6 +605,7 @@
   .threat-game.dodge { color: rgba(71,212,255,0.6); }
   .threat-game.split { color: rgba(255,71,71,0.6); }
   .threat-game.orbit { color: rgba(123,47,255,0.6); }
+  .threat-game.squish { color: rgba(116,242,182,0.6); }
 
   /* STUDIO */
   .studio-section { background: var(--surface); }
@@ -841,11 +848,11 @@
   <div class="hero-bottom fade-up">
     <div class="hero-stats">
       <div class="stat">
-        <div class="stat-num">20</div>
+        <div class="stat-num">23</div>
         <div class="stat-label">Threat types</div>
       </div>
       <div class="stat">
-        <div class="stat-num">3</div>
+        <div class="stat-num">4</div>
         <div class="stat-label">Games</div>
       </div>
       <div class="stat">
@@ -949,6 +956,33 @@
             Coming Soon ↗
           </a>
           <span class="game-badge">Free · No pay-to-win</span>
+        </div>
+      </div>
+
+      <!-- DON'T SQUISH BOB -->
+      <div class="game-card squish">
+        <div class="game-status"><span class="pulse"></span> Coming Soon on Google Play</div>
+        <div class="game-preview">
+        <a href="games/dont-squish-bob/" class="preview-link" aria-label="Play Don't Squish Bob in browser"></a>
+          <img src="gameplay-squish.gif" alt="Don't Squish Bob gameplay — drag the walls inward to crush spikes while Bob shelters underneath">
+          <a href="games/dont-squish-bob/" class="play-web">Play in Browser →</a>
+        </div>
+        <a href="games/dont-squish-bob/" class="title-link">
+        <span class="game-icon">▣</span>
+        <div class="game-title">DON'T SQUISH BOB</div>
+        <div class="game-tagline">You Are the Box</div>
+        </a>
+        <p class="game-desc">You don't control a character — you control the box. Drag the four walls inward and anything caught between them bursts. Bob, your soft blob, lives in there too. Walls slide over him instead of shoving him: pinned flat underneath he's safe from spikes but can't breathe. Tuck him under one wall, purge the box with the other, release before his air runs out.</p>
+        <div class="game-mechanic">
+          <div class="mechanic-input">▣ Drag the Walls</div>
+          <div class="mechanic-desc">Crushing is the only weapon. It also crushes Bob.</div>
+        </div>
+        <div class="game-footer">
+          <a href="#" class="game-link">
+            <svg class="play-store-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M3.609 1.814L13.792 12 3.61 22.186a.996.996 0 0 1-.61-.92V2.734a1 1 0 0 1 .609-.92zm10.89 10.893l2.302 2.302-10.937 6.333 8.635-8.635zm3.199-3.199l2.302 2.302a1 1 0 0 1 0 1.38l-2.302 2.302L15.09 12l2.608-2.492zM5.864 3.458L16.8 9.79l-2.302 2.302-8.634-8.634z"/></svg>
+            Coming Soon ↗
+          </a>
+          <span class="game-badge">Free · No ads</span>
         </div>
       </div>
 
@@ -1065,6 +1099,21 @@
         <div class="threat-name">Shrinkers</div>
         <div class="threat-game orbit">ORBIT.IO</div>
       </div>
+      <div class="threat-cell">
+        <span class="threat-symbol">✳</span>
+        <div class="threat-name">Spikes</div>
+        <div class="threat-game squish">DON'T SQUISH BOB</div>
+      </div>
+      <div class="threat-cell">
+        <span class="threat-symbol">✵</span>
+        <div class="threat-name">Splitters</div>
+        <div class="threat-game squish">DON'T SQUISH BOB</div>
+      </div>
+      <div class="threat-cell">
+        <span class="threat-symbol">✶</span>
+        <div class="threat-name">Minis</div>
+        <div class="threat-game squish">DON'T SQUISH BOB</div>
+      </div>
     </div>
   </div>
 </section>
@@ -1158,12 +1207,14 @@
     { label: 'Zero', note: 'Pay-to-Win' },
     { label: 'Daily Challenges', note: 'Same Seed. One Shot.' },
     { label: 'Free', note: 'Actually Free' },
-    { label: '20 Threat Types', note: 'Catalogued' },
+    { label: '23 Threat Types', note: 'Catalogued' },
     { label: 'Shields', note: 'Earned, Not Bought' },
     { label: 'DODGE.IO', note: 'Drag to Move' },
     { label: 'SPLIT.IO', note: 'Tap to Shift' },
     { label: 'ORBIT.IO', note: 'Coming Soon' },
     { label: 'ORBIT.IO', note: 'Tap to Reverse' },
+    { label: "DON'T SQUISH BOB", note: 'Coming Soon' },
+    { label: "DON'T SQUISH BOB", note: 'Drag the Walls' },
   ];
 
   const ticker = document.getElementById('tickerInner');
