@@ -203,10 +203,10 @@ const AudioEng={
     src.connect(bp);bp.connect(g);g.connect(this.gain);
     src.start(t0);
   },
-  pop(sz){ // sz ~ radius
-    const p=clamp(1-(sz-9)/22,0.2,1.2);
-    this.noise({dur:0.1,vol:0.5,freq:500+p*600,q:0.8});
-    this.tone({type:'sine',f0:200+p*180,f1:60,dur:0.16,vol:0.5});
+  pop(sz,dud){ // sz ~ radius; dud = a pop worth nothing, pitched down to a thud
+    const p=clamp(1-(sz-9)/22,0.2,1.2),d=dud?0.55:1;
+    this.noise({dur:0.1,vol:dud?0.3:0.5,freq:(500+p*600)*d,q:0.8});
+    this.tone({type:'sine',f0:(200+p*180)*d,f1:60,dur:0.16,vol:dud?0.35:0.5});
   },
   hurt(){this.tone({type:'square',f0:340,f1:140,dur:0.16,vol:0.22});},
   splat(){this.noise({dur:0.12,vol:0.45,freq:260,q:0.7});this.tone({type:'sine',f0:150,f1:60,dur:0.18,vol:0.35});},
@@ -242,6 +242,19 @@ function resize(){
 window.addEventListener('resize',()=>{
   resize();
   if(S.state==='title')resetRun(true); // re-place the demo Bob when the window changes
+  // A queued warning can land outside the new resting box — or be too large
+  // to ever fit inside it — where the fit check would hold it, and its slot
+  // against the spawn cap, forever. Drop what can no longer fit (the
+  // director replaces it within a spawn interval), recenter the rest; when
+  // the clamp range inverts on a barely-large-enough box, park at the middle.
+  for(let i=tele.length-1;i>=0;i--){
+    const t=tele[i];
+    if(2*t.r+4>rest.x1-rest.x0||2*t.r+4>rest.y1-rest.y0){tele.splice(i,1);continue;}
+    const lx=rest.x0+t.r+10,hx=rest.x1-t.r-10;
+    const ly=rest.y0+t.r+10,hy=rest.y1-t.r-10;
+    t.x=lx>hx?(lx+hx)/2:clamp(t.x,lx,hx);
+    t.y=ly>hy?(ly+hy)/2:clamp(t.y,ly,hy);
+  }
 });
 resize();
 
@@ -291,14 +304,18 @@ function makeBob(cx,cy){
 function centroid(pts){let x=0,y=0;for(const p of pts){x+=p.x;y+=p.y;}return{x:x/pts.length,y:y/pts.length};}
 function polyArea(pts){let a=0;for(let i=0;i<pts.length;i++){const p=pts[i],q=pts[(i+1)%pts.length];a+=p.x*q.y-q.x*p.y;}return Math.abs(a)/2;}
 
+// Speeds raised ~8% after the first playtest came back "too easy", then ~5%
+// more when the second verdict was "slightly harder".
 const TYPES={
-  basic:{r:15,spd:[120,175],color:'#ff5470',dark:'#c22045',score:25},
-  mini:{r:9,spd:[210,270],color:'#ff87a8',dark:'#d14a75',score:15},
-  splitter:{r:20,spd:[75,110],color:'#a78bfa',dark:'#6d4fc4',score:40}
+  basic:{r:15,spd:[137,200],color:'#ff5470',dark:'#c22045',score:25},
+  mini:{r:9,spd:[236,305],color:'#ff87a8',dark:'#d14a75',score:15},
+  splitter:{r:20,spd:[84,126],color:'#a78bfa',dark:'#6d4fc4',score:40}
 };
-function makeSpike(x,y,type){
-  const T=TYPES[type],a=rand(0,TAU),s=rand(T.spd[0],T.spd[1])*U;
-  return {x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,r:T.r*U,base:s,type,
+function makeSpike(x,y,type,speedScale=1){
+  const T=TYPES[type],a=rand(0,TAU),s=rand(T.spd[0],T.spd[1])*U*speedScale;
+  // live = game-time seconds loose in the box; crushing pays only once a
+  // spike has been loose long enough (1s) to have been a real threat.
+  return {x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,r:T.r*U,base:s,type,live:0,
     rot:rand(0,TAU),spin:rand(-2,2),popGap:T.r*U*2*0.92+2};
 }
 
@@ -378,35 +395,69 @@ cv.addEventListener('touchmove',e=>e.preventDefault(),{passive:false});
 cv.addEventListener('contextmenu',e=>e.preventDefault());
 
 /* ============================== game logic ============================== */
+// True while a wall covers this warning's spot too closely for its spike to stand.
+function teleBlocked(t){
+  const f=faces();
+  return t.x-t.r<f.x0+2||t.x+t.r>f.x1-2||t.y-t.r<f.y0+2||t.y+t.r>f.y1-2;
+}
+// Shared late-game heat factor: 0 at t=60s rising to 1 at t=180s.
+function lateFactor(){return clamp((S.t-60)/120,0,1);}
+// Late-game heat: new spikes cruise faster once the run gets going (t~40s),
+// levelling toward +75%. Spikes already in flight keep their speed.
+function spikeSpeedScale(){
+  return 1+0.85*(1-Math.exp(-Math.max(0,S.t-40)/90));
+}
 function spawnDirector(dt){
   const t=S.t;
-  const interval=Math.max(0.65,2.1-t*0.016);
-  const maxCount=Math.min(9,2+Math.floor(t/12));
+  // Tuned twice: the original curve froze at 9 spikes from 84s on, and the
+  // first playtest after un-freezing it still came back "too easy". Busier
+  // start, lower floor, cap climbing to 13; lateness also shifts the mix and
+  // heats, hastens and closes in new spawns.
+  const interval=Math.max(0.5,1.65-t*0.016);
+  const maxCount=Math.min(13,3+Math.floor(t/10));
+  const late=lateFactor();
   S.spawnT-=dt;
   if(S.spawnT<=0&&spikes.length+tele.length<maxCount){
-    S.spawnT=interval*rand(0.8,1.25);
     let type='basic';
     const roll=Math.random();
-    if(t>45&&roll<0.18)type='mini';
-    else if(t>25&&roll<0.42)type='splitter';
-    const T=TYPES[type],r=T.r*U,f=faces();
-    const x0=f.x0+r+10,x1=f.x1-r-10,y0=f.y0+r+10,y1=f.y1-r-10;
-    if(x1<=x0||y1<=y0)return;
-    const bc=centroid(bob.pts);
-    for(let i=0;i<14;i++){
-      const x=rand(x0,x1),y=rand(y0,y1);
-      if(Math.hypot(x-bc.x,y-bc.y)<bob.r+r+70*U)continue;
-      let close=false;
-      for(const tl of tele)if(Math.hypot(x-tl.x,y-tl.y)<50){close=true;break;}
-      if(close)continue;
-      tele.push({x,y,r,type,t:0});
-      break;
+    if(t>35&&roll<0.18+0.14*late)type='mini';
+    else if(t>20&&roll<0.42+0.14*late)type='splitter';
+    // Warnings are placed in the RESTING box, not the current gap: a shut box
+    // queues danger instead of cancelling it. And the spawn budget is only
+    // spent when a warning actually lands — resetting the timer on a failed
+    // try used to let a shut box switch the director off entirely, which was
+    // half of the squeeze-and-release immortality exploit.
+    let placed=false;
+    const T=TYPES[type],r=T.r*U;
+    const x0=rest.x0+r+10,x1=rest.x1-r-10,y0=rest.y0+r+10,y1=rest.y1-r-10;
+    if(x1>x0&&y1>y0){
+      const bc=centroid(bob.pts);
+      // Bob's personal space shrinks with heat: late spawns land closer, so
+      // a purge's replacement wave arrives with real menace. Warnings also
+      // give less notice as the run heats up: 0.8s at first, 0.52s late.
+      const clearance=bob.r+r+(70-25*late)*U;
+      const dur=0.8*(1-0.35*late);
+      for(let i=0;i<14;i++){
+        const x=rand(x0,x1),y=rand(y0,y1);
+        if(Math.hypot(x-bc.x,y-bc.y)<clearance)continue;
+        let close=false;
+        for(const tl of tele)if(Math.hypot(x-tl.x,y-tl.y)<50){close=true;break;}
+        if(close)continue;
+        tele.push({x,y,r,type,t:0,dur});
+        placed=true;
+        break;
+      }
     }
+    S.spawnT=placed?interval*rand(0.8,1.25):0.15;
   }
   for(let i=tele.length-1;i>=0;i--){
     tele[i].t+=dt;
-    if(tele[i].t>=0.8){
-      spikes.push(makeSpike(tele[i].x,tele[i].y,tele[i].type));
+    // A matured warning becomes a spike the moment its spot fits the current
+    // gap — immediately in the open, or the instant a retreating wall
+    // uncovers it. It never expires while covered: reopening the box means
+    // meeting everything that queued while it was shut.
+    if(tele[i].t>=tele[i].dur&&!teleBlocked(tele[i])){
+      spikes.push(makeSpike(tele[i].x,tele[i].y,tele[i].type,spikeSpeedScale()));
       tele.splice(i,1);
     }
   }
@@ -415,23 +466,41 @@ function spawnDirector(dt){
 function popSpike(s,idx){
   spikes.splice(idx,1);
   const T=TYPES[s.type];
-  const now=performance.now()/1000;
-  S.combo=(now-S.lastPopT<0.5)?S.combo+1:1;
-  S.lastPopT=now;
-  const pts=T.score*S.combo;
-  S.score+=pts;S.pops++;
+  S.pops++;
+  // A pop pays only if the spike was loose long enough (1s) to have been a
+  // threat. One crushed the instant it materialised — the farming half of
+  // the squeeze-and-release exploit — bursts all the same, but mints no
+  // points, feeds no combo, and gets a dull thud instead of a chime.
+  const armed=s.live>=1;
+  if(armed){
+    const now=performance.now()/1000;
+    S.combo=(now-S.lastPopT<0.5)?S.combo+1:1;
+    S.lastPopT=now;
+    const pts=T.score*S.combo;
+    S.score+=pts;
+    floaties.push({x:s.x,y:s.y,txt:'+'+pts,color:'#fff3d9',t:0});
+    if(S.combo>=2)floaties.push({x:s.x,y:s.y-26,txt:S.combo+'x SQUISH!',color:'#53e0ff',t:0,big:true});
+    S.hitstop=0.055;S.shakeT=0.18;S.shakeAmp=Math.min(9,3+S.combo*1.5);
+    if(S.combo>=2)AudioEng.combo(S.combo);
+    vib(S.combo>=3?[15,30,15]:18);
+  }else{
+    // Raise-only: a dud bursting in the same crush frame as an armed pop
+    // must not stomp the celebration shake already in flight.
+    S.shakeT=Math.max(S.shakeT,0.1);S.shakeAmp=Math.max(S.shakeAmp,2);
+    vib(10);
+  }
   goo(s.x,s.y,T.color,s.type==='mini'?8:14,s.r);
-  floaties.push({x:s.x,y:s.y,txt:'+'+pts,color:'#fff3d9',t:0});
-  if(S.combo>=2)floaties.push({x:s.x,y:s.y-26,txt:S.combo+'x SQUISH!',color:'#53e0ff',t:0,big:true});
-  S.hitstop=0.055;S.shakeT=0.18;S.shakeAmp=Math.min(9,3+S.combo*1.5);
-  AudioEng.pop(s.r/U);if(S.combo>=2)AudioEng.combo(S.combo);
-  vib(S.combo>=3?[15,30,15]:18);
+  AudioEng.pop(s.r/U,!armed);
   if(s.type==='splitter'){
     const a=rand(0,TAU);
     for(const sg of[1,-1]){
-      const m=makeSpike(s.x+Math.cos(a)*sg*8,s.y+Math.sin(a)*sg*8,'mini');
+      const m=makeSpike(s.x+Math.cos(a)*sg*8,s.y+Math.sin(a)*sg*8,'mini',spikeSpeedScale());
       const sp=m.base*1.2;
       m.vx=Math.cos(a)*sg*sp;m.vy=Math.sin(a)*sg*sp;
+      // Children continue the parent's threat, so they inherit its clock:
+      // an armed splitter's minis stay worth full value through the same
+      // squeeze, and a farmed splitter's minis stay worthless.
+      m.live=s.live;
       spikes.push(m);
     }
   }
@@ -558,7 +627,11 @@ function physStep(h){
 
 function updatePlay(dt){
   S.t+=dt;
-  S.score+=dt*10;
+  // Survival pay only flows while danger is loose: an empty board earns
+  // nothing, otherwise holding the box shut (or pinching a spike-proof slot)
+  // turns the score clock into a faucet with the game switched off.
+  if(spikes.length>0)S.score+=dt*10;
+  for(const s of spikes)s.live+=dt;
   spawnDirector(dt);
 
   // crushing
@@ -703,9 +776,11 @@ function draw(){
       ctx.beginPath();ctx.arc(x,y,2,0,TAU);ctx.fill();
     }
 
-  // telegraphs
+  // telegraphs (a warning held under a wall stays matured past its duration,
+  // so clamp the ring maths; durations compress with heat, hence t.dur; its
+  // wait is drawn on the slab after drawWalls)
   for(const t of tele){
-    const k=t.t/0.8;
+    const k=Math.min(1,t.t/t.dur);
     const T=TYPES[t.type];
     ctx.strokeStyle=T.color;ctx.globalAlpha=0.3+k*0.6;ctx.lineWidth=3;
     ctx.beginPath();ctx.arc(t.x,t.y,t.r*(1.9-k*0.9),0,TAU);ctx.stroke();
@@ -752,6 +827,23 @@ function draw(){
   ctx.restore(); // clip
 
   drawWalls(f);
+  // Warnings whose spot is under a wall slab are clipped out of the interior
+  // pass, but the player must see the debt building: a shut box queues spikes
+  // instead of cancelling them, and each marker is a spike that materialises
+  // the instant the wall uncovers it. Ready ones pulse (steady if the player
+  // prefers reduced motion); still-charging ones sit dim.
+  for(const t of tele){
+    if(!teleBlocked(t))continue;
+    const T=TYPES[t.type],ready=t.t>=t.dur;
+    const pulse=(!ready||RM)?0:Math.sin(t.t*9)*0.5+0.5;
+    ctx.strokeStyle=T.color;ctx.lineWidth=3;
+    ctx.globalAlpha=(ready?0.55:0.30)+0.30*pulse;
+    ctx.beginPath();ctx.arc(t.x,t.y,t.r*0.9,0,TAU);ctx.stroke();
+    ctx.fillStyle=T.color;
+    ctx.globalAlpha=ready?0.35+0.2*pulse:0.18;
+    ctx.beginPath();ctx.arc(t.x,t.y,t.r*0.45,0,TAU);ctx.fill();
+    ctx.globalAlpha=1;
+  }
   if(bob&&!bob.dead&&bob.covered)drawBobCovered();
   drawHints(f);
 }
